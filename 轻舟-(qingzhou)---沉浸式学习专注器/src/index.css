@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Manrope", sans-serif;
+  --font-label: "Plus Jakarta Sans", sans-serif;
+
+  --color-primary: #426464;
+  --color-primary-container: #c5eae9;
+  --color-on-primary-container: #355758;
+  --color-secondary: #516074;
+  --color-surface: #f9f9f9;
+  --color-surface-container-low: #f2f4f4;
+  --color-surface-container-high: #e4e9ea;
+  --color-surface-container-highest: #dde4e5;
+  --color-outline: #757c7d;
+  --color-outline-variant: #adb3b4;
+  --color-on-surface: #2d3435;
+  --color-on-surface-variant: #5a6061;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-surface text-on-surface selection:bg-primary-container antialiased;
+  }
+}
+
+.ease-in-out-cubic {
+  transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
