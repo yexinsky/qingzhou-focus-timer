@@ -21,13 +21,14 @@ class FocusSessionAdapter extends TypeAdapter<FocusSession> {
       duration: fields[5] as int,
       type: fields[6] as String,
       dateKey: fields[7] as String,
+      timerMode: fields[8] as String? ?? 'countdown',
     );
   }
 
   @override
   void write(BinaryWriter writer, FocusSession obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -43,7 +44,9 @@ class FocusSessionAdapter extends TypeAdapter<FocusSession> {
       ..writeByte(6)
       ..write(obj.type)
       ..writeByte(7)
-      ..write(obj.dateKey);
+      ..write(obj.dateKey)
+      ..writeByte(8)
+      ..write(obj.timerMode);
   }
 
   @override

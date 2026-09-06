@@ -4,11 +4,15 @@ import '../data/models/focus_session.dart';
 import 'stats_provider.dart';
 import 'task_provider.dart';
 import 'timer_provider.dart';
+import 'feynman_provider.dart';
 
 const timerSnapshotKey = 'timer_session_snapshot_v1';
 
 final dataBackupServiceProvider = Provider<DataBackupService>(
-  (ref) => DataBackupService(ref.watch(taskRepositoryProvider)),
+  (ref) => DataBackupService(
+    ref.watch(taskRepositoryProvider),
+    feynmanRepository: ref.watch(feynmanRepositoryProvider),
+  ),
 );
 
 final sessionHistoryProvider = Provider<List<FocusSession>>((ref) {
@@ -49,6 +53,7 @@ class DataManagementNotifier extends StateNotifier<bool> {
   Future<void> clearAllData() async {
     _ref.read(timerProvider.notifier).abandonSession();
     await _ref.read(taskRepositoryProvider).clearAllData();
+    await _ref.read(feynmanRepositoryProvider).clear();
     await _ref.read(settingsRepositoryProvider).remove(timerSnapshotKey);
     _refresh();
   }
@@ -56,5 +61,6 @@ class DataManagementNotifier extends StateNotifier<bool> {
   void _refresh() {
     _ref.read(tasksProvider.notifier).refresh();
     _ref.read(statsRefreshProvider.notifier).state++;
+    _ref.read(feynmanRefreshProvider.notifier).state++;
   }
 }

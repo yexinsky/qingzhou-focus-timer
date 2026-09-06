@@ -108,4 +108,58 @@ void main() {
     expect(longBreak.state.sessionType, SessionType.longBreak);
     expect(longBreak.state.totalTime, 15 * 60);
   });
+
+  test('flexible timer counts up, pauses, resumes and records once', () async {
+    var clock = DateTime(2026, 9, 6, 10);
+    final notifier = await createNotifier(now: () => clock);
+    addTearDown(notifier.dispose);
+    notifier.setFocusTimerMode(FocusTimerMode.stopwatch);
+    expect(notifier.state.totalTime, 0);
+    notifier.startTimer();
+    clock = clock.add(const Duration(seconds: 35));
+    notifier.pauseTimer();
+    expect(notifier.state.totalTime, 35);
+    clock = clock.add(const Duration(minutes: 5));
+    notifier.resumeTimer();
+    clock = clock.add(const Duration(seconds: 10));
+    expect(await notifier.finishFlexibleSession(), isTrue);
+    expect(taskRepository.sessions.length, 1);
+    final session = taskRepository.sessions.values.single;
+    expect(session.duration, 45);
+    expect(session.isFlexible, isTrue);
+    expect(notifier.state.completedSessions, 0);
+    expect(await notifier.finishFlexibleSession(), isFalse);
+    expect(taskRepository.sessions.length, 1);
+  });
+
+  test('abandoning flexible timer does not save a session', () async {
+    var clock = DateTime(2026, 9, 6, 10);
+    final notifier = await createNotifier(now: () => clock);
+    addTearDown(notifier.dispose);
+    notifier.setFocusTimerMode(FocusTimerMode.stopwatch);
+    notifier.startTimer();
+    clock = clock.add(const Duration(seconds: 15));
+    notifier.abandonSession();
+    expect(taskRepository.sessions, isEmpty);
+    expect(notifier.state.state, TimerState.idle);
+    expect(notifier.state.totalTime, 0);
+  });
+
+  test('running flexible timer restores elapsed wall-clock time', () async {
+    final started = DateTime(2026, 9, 6, 10);
+    SharedPreferences.setMockInitialValues({
+      'timer_session_snapshot_v1':
+          '{"timeLeft":0,"totalTime":20,"state":"running","sessionType":"focus","focusTimerMode":"stopwatch","task":null,"completedSessions":0,"startedAt":${started.millisecondsSinceEpoch},"endsAt":${started.millisecondsSinceEpoch}}',
+    });
+    settingsRepository = SettingsRepository();
+    await settingsRepository.init();
+    final notifier = TimerNotifier(
+      TestTaskRepository(),
+      settingsRepository,
+      now: () => started.add(const Duration(seconds: 75)),
+    );
+    addTearDown(notifier.dispose);
+    expect(notifier.state.state, TimerState.running);
+    expect(notifier.state.totalTime, 75);
+  });
 }

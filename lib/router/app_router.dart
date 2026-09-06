@@ -6,6 +6,10 @@ import '../views/plan/plan_view.dart';
 import '../views/stats/stats_view.dart';
 import '../views/settings/settings_view.dart';
 import '../views/history/session_history_view.dart';
+import '../views/feynman/feynman_setup_view.dart';
+import '../views/feynman/feynman_session_view.dart';
+import '../views/feynman/feynman_review_view.dart';
+import '../views/feynman/feynman_heatmap_view.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
@@ -15,6 +19,26 @@ final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/focus',
   routes: [
+    GoRoute(
+      path: '/feynman',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FeynmanSetupView(),
+    ),
+    GoRoute(
+      path: '/feynman/session',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FeynmanSessionView(),
+    ),
+    GoRoute(
+      path: '/feynman/review',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FeynmanReviewView(),
+    ),
+    GoRoute(
+      path: '/feynman/heatmap',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FeynmanHeatmapView(),
+    ),
     GoRoute(
       path: '/history',
       parentNavigatorKey: _rootNavigatorKey,

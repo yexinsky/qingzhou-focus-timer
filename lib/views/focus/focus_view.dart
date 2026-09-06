@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/time_formatter.dart';
 import '../../providers/timer_provider.dart';
@@ -84,7 +85,24 @@ class _FocusViewState extends ConsumerState<FocusView>
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 60),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: TextButton.icon(
+                  onPressed: () => context.push('/feynman'),
+                  icon: const Icon(Icons.school_outlined),
+                  label: const Text('费曼学习'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (timerState.sessionType == SessionType.focus &&
+                timerState.state == TimerState.idle) ...[
+              _buildModeSelector(timerState),
+              const SizedBox(height: 16),
+            ],
             _buildStatusBadge(timerState, subjectColor),
             if (timerState.currentTask != null) ...[
               const SizedBox(height: 24),
@@ -101,7 +119,9 @@ class _FocusViewState extends ConsumerState<FocusView>
               _buildDurationChips(timerState, settings),
             if (timerState.state == TimerState.running ||
                 timerState.state == TimerState.paused)
-              _buildAbandonButton(),
+              timerState.isFlexible
+                  ? _buildFlexibleActions(timerState)
+                  : _buildAbandonButton(),
             if (timerState.state == TimerState.completed)
               _buildCompletionActions(timerState, subjectColor),
             const SizedBox(height: 100),
@@ -308,6 +328,51 @@ class _FocusViewState extends ConsumerState<FocusView>
         ),
       ),
     );
+  }
+
+  Widget _buildModeSelector(TimerStateData timerState) {
+    return SegmentedButton<FocusTimerMode>(
+      segments: const [
+        ButtonSegment(value: FocusTimerMode.countdown, label: Text('固定计时')),
+        ButtonSegment(value: FocusTimerMode.stopwatch, label: Text('灵活计时')),
+      ],
+      selected: {timerState.focusTimerMode},
+      onSelectionChanged: (value) =>
+          ref.read(timerProvider.notifier).setFocusTimerMode(value.first),
+      showSelectedIcon: false,
+    );
+  }
+
+  Widget _buildFlexibleActions(TimerStateData timerState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FilledButton.icon(
+            onPressed: timerState.totalTime > 0 ? _finishFlexible : null,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('结束并记录'),
+          ),
+          const SizedBox(width: 12),
+          TextButton(
+            onPressed: _showAbandonConfirm,
+            child: const Text('放弃且不记录'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _finishFlexible() async {
+    final saved = await ref
+        .read(timerProvider.notifier)
+        .finishFlexibleSession();
+    if (saved && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('本次灵活专注已记录')));
+    }
   }
 
   Widget _buildAbandonButton() {

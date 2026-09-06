@@ -7,7 +7,6 @@ import '../../providers/data_management_provider.dart';
 
 class SessionHistoryView extends ConsumerWidget {
   const SessionHistoryView({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sessions = ref.watch(sessionHistoryProvider);
@@ -29,11 +28,12 @@ class SessionHistoryView extends ConsumerWidget {
 class _SessionCard extends ConsumerWidget {
   const _SessionCard({required this.session});
   final FocusSession session;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final start = DateTime.fromMillisecondsSinceEpoch(session.startTime);
-    final minutes = session.duration ~/ 60;
+    final durationLabel = session.duration < 60
+        ? '${session.duration} 秒'
+        : '${session.duration ~/ 60} 分钟';
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 0,
@@ -54,12 +54,12 @@ class _SessionCard extends ConsumerWidget {
               : '自由专注',
         ),
         subtitle: Text(
-          '${DateFormat('yyyy年M月d日 HH:mm').format(start)} · ${session.subject}',
+          '${DateFormat('yyyy年M月d日 HH:mm').format(start)} · ${session.subject}${session.isFlexible ? ' · 灵活计时' : ''}',
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('$minutes 分钟'),
+            Text(durationLabel),
             PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'delete') _confirmDelete(context, ref);
@@ -94,10 +94,11 @@ class _SessionCard extends ConsumerWidget {
     );
     if (confirmed == true) {
       await ref.read(dataManagementProvider.notifier).deleteSession(session.id);
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('记录已删除')));
+      }
     }
   }
 }

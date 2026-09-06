@@ -15,6 +15,8 @@ enum TimerState { idle, running, paused, completed }
 
 enum SessionType { focus, shortBreak, longBreak }
 
+enum FocusTimerMode { countdown, stopwatch }
+
 class TimerStateData {
   final int timeLeft;
   final int totalTime;
@@ -22,6 +24,7 @@ class TimerStateData {
   final SessionType sessionType;
   final Task? currentTask;
   final int completedSessions;
+  final FocusTimerMode focusTimerMode;
 
   TimerStateData({
     required this.timeLeft,
@@ -30,6 +33,7 @@ class TimerStateData {
     required this.sessionType,
     this.currentTask,
     this.completedSessions = 0,
+    this.focusTimerMode = FocusTimerMode.countdown,
   });
 
   TimerStateData copyWith({
@@ -39,6 +43,7 @@ class TimerStateData {
     SessionType? sessionType,
     Task? currentTask,
     int? completedSessions,
+    FocusTimerMode? focusTimerMode,
     bool clearTask = false,
   }) => TimerStateData(
     timeLeft: timeLeft ?? this.timeLeft,
@@ -47,9 +52,15 @@ class TimerStateData {
     sessionType: sessionType ?? this.sessionType,
     currentTask: clearTask ? null : (currentTask ?? this.currentTask),
     completedSessions: completedSessions ?? this.completedSessions,
+    focusTimerMode: focusTimerMode ?? this.focusTimerMode,
   );
 
-  double get progress => totalTime > 0 ? (totalTime - timeLeft) / totalTime : 0;
+  bool get isFlexible => focusTimerMode == FocusTimerMode.stopwatch;
+
+  int get displayedSeconds => isFlexible ? totalTime : timeLeft;
+
+  double get progress =>
+      isFlexible ? 0 : (totalTime > 0 ? (totalTime - timeLeft) / totalTime : 0);
 }
 
 final taskRepositoryProvider = Provider<TaskRepository>(
@@ -128,6 +139,9 @@ class TimerNotifier extends StateNotifier<TimerStateData>
         sessionType: sessionType,
         currentTask: taskData == null ? null : Task.fromJson(taskData),
         completedSessions: data['completedSessions'] as int? ?? 0,
+        focusTimerMode: FocusTimerMode.values.byName(
+          data['focusTimerMode'] as String? ?? 'countdown',
+        ),
       );
       _startedAt = data['startedAt'] as int?;
       _endsAt = data['endsAt'] as int?;
@@ -155,6 +169,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       'sessionType': state.sessionType.name,
       'task': state.currentTask?.toJson(),
       'completedSessions': state.completedSessions,
+      'focusTimerMode': state.focusTimerMode.name,
       'startedAt': _startedAt,
       'endsAt': _endsAt,
     }),
@@ -200,7 +215,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     if (task != null) state = state.copyWith(currentTask: task);
     final now = _now().millisecondsSinceEpoch;
     _startedAt ??= now;
-    _endsAt = now + state.timeLeft * 1000;
+    _endsAt = state.isFlexible ? now : now + state.timeLeft * 1000;
     state = state.copyWith(state: TimerState.running);
     _persistSnapshot();
     _startTicker();
@@ -218,6 +233,14 @@ class TimerNotifier extends StateNotifier<TimerStateData>
 
   void _syncWithClock() {
     if (state.state != TimerState.running || _endsAt == null) return;
+    if (state.isFlexible) {
+      final seconds = ((_now().millisecondsSinceEpoch - _endsAt!) / 1000)
+          .floor();
+      if (seconds >= 0 && seconds != state.totalTime) {
+        state = state.copyWith(totalTime: seconds, timeLeft: 0);
+      }
+      return;
+    }
     final milliseconds = _endsAt! - _now().millisecondsSinceEpoch;
     final seconds = milliseconds <= 0 ? 0 : (milliseconds / 1000).ceil();
     if (seconds != state.timeLeft) state = state.copyWith(timeLeft: seconds);
@@ -235,7 +258,17 @@ class TimerNotifier extends StateNotifier<TimerStateData>
   }
 
   void resumeTimer() {
-    if (state.state == TimerState.paused) startTimer();
+    if (state.state == TimerState.paused) {
+      if (state.isFlexible) {
+        final now = _now().millisecondsSinceEpoch;
+        _endsAt = now - state.totalTime * 1000;
+        state = state.copyWith(state: TimerState.running);
+        _persistSnapshot();
+        _startTicker();
+      } else {
+        startTimer();
+      }
+    }
   }
 
   void toggleTimer() {
@@ -249,8 +282,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _endsAt = null;
     _completing = false;
     state = state.copyWith(
-      timeLeft: duration,
-      totalTime: duration,
+      timeLeft: state.isFlexible ? 0 : duration,
+      totalTime: state.isFlexible ? 0 : duration,
       state: TimerState.idle,
     );
     _clearSnapshot();
@@ -282,6 +315,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
         startTime: _startedAt!,
         duration: state.totalTime,
         type: 'focus',
+        timerMode: 'countdown',
         dateKey: _dateKey(DateTime.fromMillisecondsSinceEpoch(_startedAt!)),
       );
       await _taskRepo.addSession(session);
@@ -340,6 +374,57 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       clearTask: clearTask,
     );
     _persistSnapshot();
+  }
+
+  void setFocusTimerMode(FocusTimerMode mode) {
+    if (state.state != TimerState.idle ||
+        state.sessionType != SessionType.focus)
+      return;
+    if (state.focusTimerMode == mode) return;
+    final seconds = mode == FocusTimerMode.stopwatch
+        ? 0
+        : _settingsRepo.focusDuration * 60;
+    state = state.copyWith(
+      focusTimerMode: mode,
+      timeLeft: seconds,
+      totalTime: seconds,
+    );
+    _persistSnapshot();
+  }
+
+  Future<bool> finishFlexibleSession() async {
+    if (!state.isFlexible ||
+        state.sessionType != SessionType.focus ||
+        (state.state != TimerState.running &&
+            state.state != TimerState.paused) ||
+        _completing) {
+      return false;
+    }
+    if (state.state == TimerState.running) _syncWithClock();
+    final duration = state.totalTime;
+    if (duration <= 0 || _startedAt == null) return false;
+    _completing = true;
+    _timer?.cancel();
+    final session = FocusSession(
+      id: _uuid.v4(),
+      taskId: state.currentTask?.id,
+      taskTitle: state.currentTask?.title,
+      subject: state.currentTask?.subject ?? '其他',
+      startTime: _startedAt!,
+      duration: duration,
+      type: 'focus',
+      timerMode: 'stopwatch',
+      dateKey: _dateKey(DateTime.fromMillisecondsSinceEpoch(_startedAt!)),
+    );
+    await _taskRepo.addSession(session);
+    _onSessionRecorded?.call();
+    _timer?.cancel();
+    _startedAt = null;
+    _endsAt = null;
+    _completing = false;
+    state = state.copyWith(timeLeft: 0, totalTime: 0, state: TimerState.idle);
+    await _clearSnapshot();
+    return true;
   }
 
   void setDuration(int minutes) {
