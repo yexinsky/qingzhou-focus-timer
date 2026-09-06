@@ -12,7 +12,7 @@ class FeynmanReviewView extends ConsumerWidget {
     final n = ref.read(feynmanProvider.notifier);
     Future<void> done(String outcome) async {
       await n.complete(outcome: outcome);
-      if (c.mounted) c.go('/feynman/heatmap');
+      if (c.mounted) c.pushReplacement('/feynman/heatmap');
     }
 
     return Scaffold(

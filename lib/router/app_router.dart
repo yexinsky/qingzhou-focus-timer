@@ -19,31 +19,6 @@ final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/focus',
   routes: [
-    GoRoute(
-      path: '/feynman',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FeynmanSetupView(),
-    ),
-    GoRoute(
-      path: '/feynman/session',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FeynmanSessionView(),
-    ),
-    GoRoute(
-      path: '/feynman/review',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FeynmanReviewView(),
-    ),
-    GoRoute(
-      path: '/feynman/heatmap',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FeynmanHeatmapView(),
-    ),
-    GoRoute(
-      path: '/history',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SessionHistoryView(),
-    ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => MainShell(child: child),
@@ -67,6 +42,32 @@ final appRouter = GoRouter(
           path: '/settings',
           pageBuilder: (context, state) =>
               _buildPage(context, state, const SettingsView()),
+          routes: [
+            GoRoute(
+              path: 'history',
+              builder: (context, state) => const SessionHistoryView(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/feynman',
+          builder: (context, state) => const FeynmanSetupView(),
+          routes: [
+            GoRoute(
+              path: 'session',
+              builder: (context, state) => const FeynmanSessionView(),
+              routes: [
+                GoRoute(
+                  path: 'review',
+                  builder: (context, state) => const FeynmanReviewView(),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'heatmap',
+              builder: (context, state) => const FeynmanHeatmapView(),
+            ),
+          ],
         ),
       ],
     ),

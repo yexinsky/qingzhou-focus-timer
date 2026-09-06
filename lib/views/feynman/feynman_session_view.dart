@@ -144,7 +144,8 @@ class _FeynmanSessionViewState extends ConsumerState<FeynmanSessionView> {
                       onPressed: () async {
                         await notifier.saveDraft(_text.text);
                         await notifier.beginReview();
-                        if (context.mounted) context.go('/feynman/review');
+                        if (context.mounted)
+                          context.push('/feynman/session/review');
                       },
                       child: const Text('结束并复盘'),
                     ),

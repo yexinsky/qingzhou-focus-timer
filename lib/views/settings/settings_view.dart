@@ -155,7 +155,7 @@ class SettingsView extends ConsumerWidget {
                 title: '专注历史',
                 subtitle: '查看并管理全部专注记录',
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/history'),
+                onTap: () => context.push('/settings/history'),
               ),
               SettingTile(
                 title: '导出备份',

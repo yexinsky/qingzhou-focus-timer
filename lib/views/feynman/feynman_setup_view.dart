@@ -77,12 +77,12 @@ class _State extends ConsumerState<FeynmanSetupView> {
                   inputMinutes: input,
                   outputMinutes: output,
                 );
-            if (c.mounted) c.go('/feynman/session');
+            if (c.mounted) c.push('/feynman/session');
           },
           child: const Text('开始输入理解'),
         ),
         TextButton(
-          onPressed: () => c.go('/feynman/heatmap'),
+          onPressed: () => c.push('/feynman/heatmap'),
           child: const Text('查看卡点热力图'),
         ),
       ],
