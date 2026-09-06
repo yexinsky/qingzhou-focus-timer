@@ -25,17 +25,17 @@ class FeynmanReviewView extends ConsumerWidget {
           const Text('现在能不看资料完整讲清楚吗？'),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: () => done('explained'),
+            onPressed: () => done(FeynmanNotifier.outcomeExplained),
             icon: const Icon(Icons.check_circle),
             label: const Text('已经讲清楚'),
           ),
           OutlinedButton.icon(
-            onPressed: () => done('blind_spot'),
+            onPressed: () => done(FeynmanNotifier.outcomeBlindSpot),
             icon: const Icon(Icons.warning_amber),
             label: const Text('仍有盲点'),
           ),
           OutlinedButton.icon(
-            onPressed: () => done('reread'),
+            onPressed: () => done(FeynmanNotifier.outcomeReread),
             icon: const Icon(Icons.menu_book),
             label: const Text('需要返回重读'),
           ),

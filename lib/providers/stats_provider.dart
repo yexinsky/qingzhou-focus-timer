@@ -49,22 +49,27 @@ class StatsNotifier {
   DailyStats _statsForDate(DateTime date) {
     final dateKey = _dateKey(date);
     final sessions = _taskRepo.getSessionsByDate(dateKey);
-    final subjectMinutes = <String, int>{};
-    var totalMinutes = 0;
+    final subjectSeconds = <String, int>{};
+    var totalSeconds = 0;
+    var completedPomodoros = 0;
     for (final session in sessions) {
-      final minutes = session.duration ~/ 60;
-      totalMinutes += minutes;
-      subjectMinutes.update(
+      totalSeconds += session.duration;
+      subjectSeconds.update(
         session.subject,
-        (value) => value + minutes,
-        ifAbsent: () => minutes,
+        (value) => value + session.duration,
+        ifAbsent: () => session.duration,
       );
+      if (session.timerMode != 'stopwatch') {
+        completedPomodoros++;
+      }
     }
     return DailyStats(
       dateKey: dateKey,
-      totalMinutes: totalMinutes,
-      completedPomodoros: sessions.length,
-      subjectMinutes: subjectMinutes,
+      totalMinutes: totalSeconds ~/ 60,
+      completedPomodoros: completedPomodoros,
+      subjectMinutes: subjectSeconds.map(
+        (subject, seconds) => MapEntry(subject, seconds ~/ 60),
+      ),
     );
   }
 

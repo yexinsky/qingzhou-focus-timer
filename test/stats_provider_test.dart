@@ -77,6 +77,53 @@ void main() {
     );
   });
 
+  test('sub-minute sessions are summed before converting to minutes', () {
+    repository.sessions.addAll({
+      '1': FocusSession(
+        id: '1',
+        subject: '数学',
+        startTime: 0,
+        duration: 40,
+        type: 'focus',
+        dateKey: '2026-09-06',
+        timerMode: 'stopwatch',
+      ),
+      '2': FocusSession(
+        id: '2',
+        subject: '数学',
+        startTime: 1,
+        duration: 40,
+        type: 'focus',
+        dateKey: '2026-09-06',
+        timerMode: 'stopwatch',
+      ),
+    });
+
+    final stats = StatsNotifier(repository, now: () => now).getTodayStats();
+    expect(stats.totalMinutes, 1);
+    expect(stats.subjectMinutes, {'数学': 1});
+    expect(stats.completedPomodoros, 0);
+  });
+
+  test('flexible sessions add duration but not pomodoro count', () {
+    repository.sessions.addAll({
+      'fixed': session('fixed', '2026-09-06', 25, '数学'),
+      'flexible': FocusSession(
+        id: 'flexible',
+        subject: '英语',
+        startTime: 1,
+        duration: 90,
+        type: 'focus',
+        dateKey: '2026-09-06',
+        timerMode: 'stopwatch',
+      ),
+    });
+
+    final stats = StatsNotifier(repository, now: () => now).getTodayStats();
+    expect(stats.totalMinutes, 26);
+    expect(stats.completedPomodoros, 1);
+    expect(stats.subjectMinutes, {'数学': 25, '英语': 1});
+  });
   test('recent session limit is delegated', () {
     for (var i = 0; i < 5; i++) {
       repository.sessions['$i'] = session(

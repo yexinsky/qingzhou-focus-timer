@@ -37,7 +37,7 @@ class _FeynmanSessionViewState extends ConsumerState<FeynmanSessionView> {
       '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
   Future<void> _mark() async {
     final mark = await ref.read(feynmanProvider.notifier).markStumble();
-    if (!mounted) return;
+    if (!mounted || mark == null) return;
     showDialog(
       context: context,
       builder: (context) => _MarkDialog(
@@ -143,6 +143,7 @@ class _FeynmanSessionViewState extends ConsumerState<FeynmanSessionView> {
                     child: FilledButton(
                       onPressed: () async {
                         await notifier.saveDraft(_text.text);
+                        await notifier.beginReview();
                         if (context.mounted) context.go('/feynman/review');
                       },
                       child: const Text('结束并复盘'),

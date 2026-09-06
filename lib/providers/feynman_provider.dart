@@ -22,6 +22,9 @@ final feynmanProvider = StateNotifierProvider<FeynmanNotifier, FeynmanUnit?>(
 );
 
 class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
+  static const outcomeExplained = 'explained';
+  static const outcomeBlindSpot = 'blind_spot';
+  static const outcomeReread = 'reread';
   FeynmanNotifier(this.ref)
     : super(ref.read(feynmanRepositoryProvider).activeUnit) {
     if (state != null) _startTicker();
@@ -31,8 +34,9 @@ class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
   int get elapsed {
     final u = state;
     if (u == null) return 0;
-    if (u.phase == 'ready' || u.status != 'active')
+    if (u.phase == 'ready' || u.phase == 'review' || u.status != 'active') {
       return u.accumulatedPhaseSeconds;
+    }
     return u.accumulatedPhaseSeconds +
         DateTime.now()
             .difference(DateTime.fromMillisecondsSinceEpoch(u.phaseStartedAt))
@@ -57,6 +61,7 @@ class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
     int inputMinutes = 20,
     int outputMinutes = 10,
   }) async {
+    if (state?.status == 'active') return;
     if (outputMinutes * 2 < inputMinutes)
       throw ArgumentError('输出时间不得低于输入时间的50%');
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -96,7 +101,7 @@ class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
 
   Future<void> beginOutput() async {
     final u = state;
-    if (u == null) return;
+    if (u == null || u.status != 'active' || u.phase != 'ready') return;
     state = u.copyWith(
       phase: 'output',
       phaseStartedAt: DateTime.now().millisecondsSinceEpoch,
@@ -112,8 +117,9 @@ class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
     await _save();
   }
 
-  Future<StumbleMark> markStumble() async {
-    final u = state!;
+  Future<StumbleMark?> markStumble() async {
+    final u = state;
+    if (u == null || u.status != 'active' || u.phase != 'output') return null;
     final mark = StumbleMark(
       id: const Uuid().v4(),
       unitId: u.id,
@@ -132,20 +138,38 @@ class FeynmanNotifier extends StateNotifier<FeynmanUnit?> {
       .read(feynmanRepositoryProvider)
       .saveMark(mark)
       .then((_) => _refresh());
+  Future<void> beginReview() async {
+    final u = state;
+    if (u == null || u.status != 'active' || u.phase != 'output') return;
+    final output = elapsed;
+    state = u.copyWith(
+      outputActualSeconds: output,
+      phase: 'review',
+      accumulatedPhaseSeconds: output,
+    );
+    _ticker?.cancel();
+    await _save();
+  }
+
   Future<void> complete({required String outcome}) async {
     final u = state;
-    if (u == null) return;
+    if (u == null || u.status != 'active' || u.phase != 'review') return;
+    if (outcome != outcomeExplained &&
+        outcome != outcomeBlindSpot &&
+        outcome != outcomeReread) {
+      throw ArgumentError.value(outcome, 'outcome', '未知复盘结果');
+    }
     final input = u.inputActualSeconds == 0 && u.phase != 'input'
         ? u.inputPlannedSeconds
         : u.inputActualSeconds;
-    final output = u.phase == 'output' ? elapsed : u.outputActualSeconds;
+    final output = u.outputActualSeconds;
     final met = output * 2 >= input;
     state = u.copyWith(
       inputActualSeconds: input,
       outputActualSeconds: output,
       completedAt: DateTime.now().millisecondsSinceEpoch,
       status: outcome,
-      recommendReread: outcome != 'explained' || !met,
+      recommendReread: outcome != outcomeExplained || !met,
       phase: 'review',
       accumulatedPhaseSeconds: output,
     );

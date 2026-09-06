@@ -216,8 +216,8 @@ class _FocusViewState extends ConsumerState<FocusView>
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     child: Text(
-                      TimeFormatter.formatSeconds(timerState.timeLeft),
-                      key: ValueKey(timerState.timeLeft),
+                      TimeFormatter.formatSeconds(timerState.displayedSeconds),
+                      key: ValueKey(timerState.displayedSeconds),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                         fontWeight: FontWeight.w200,
                         fontSize: 72,
@@ -227,7 +227,11 @@ class _FocusViewState extends ConsumerState<FocusView>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    timerState.state == TimerState.idle ? '点击开始' : '剩余时间',
+                    timerState.state == TimerState.idle
+                        ? '点击开始'
+                        : timerState.isFlexible
+                        ? '累计时间'
+                        : '剩余时间',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       letterSpacing: 2,
                       color: AppColors.textSecondary,
