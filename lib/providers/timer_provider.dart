@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -6,9 +7,13 @@ import '../data/models/task.dart';
 import '../data/models/focus_session.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/repositories/settings_repository.dart';
-import '../core/utils/time_formatter.dart';
+import '../core/services/session_feedback_service.dart';
+import 'session_feedback_provider.dart';
+import 'stats_provider.dart';
 
 enum TimerState { idle, running, paused, completed }
+
+enum SessionType { focus, shortBreak, longBreak }
 
 class TimerStateData {
   final int timeLeft;
@@ -35,73 +40,139 @@ class TimerStateData {
     Task? currentTask,
     int? completedSessions,
     bool clearTask = false,
-  }) {
-    return TimerStateData(
-      timeLeft: timeLeft ?? this.timeLeft,
-      totalTime: totalTime ?? this.totalTime,
-      state: state ?? this.state,
-      sessionType: sessionType ?? this.sessionType,
-      currentTask: clearTask ? null : (currentTask ?? this.currentTask),
-      completedSessions: completedSessions ?? this.completedSessions,
-    );
-  }
+  }) => TimerStateData(
+    timeLeft: timeLeft ?? this.timeLeft,
+    totalTime: totalTime ?? this.totalTime,
+    state: state ?? this.state,
+    sessionType: sessionType ?? this.sessionType,
+    currentTask: clearTask ? null : (currentTask ?? this.currentTask),
+    completedSessions: completedSessions ?? this.completedSessions,
+  );
 
   double get progress => totalTime > 0 ? (totalTime - timeLeft) / totalTime : 0;
 }
 
-enum SessionType { focus, shortBreak, longBreak }
-
-final taskRepositoryProvider = Provider<TaskRepository>((ref) {
-  return TaskRepository();
-});
-
-final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
-  return SettingsRepository();
-});
-
-final timerProvider =
-    StateNotifierProvider<TimerNotifier, TimerStateData>((ref) {
-  final taskRepo = ref.watch(taskRepositoryProvider);
-  final settingsRepo = ref.watch(settingsRepositoryProvider);
-  return TimerNotifier(taskRepo, settingsRepo);
+final taskRepositoryProvider = Provider<TaskRepository>(
+  (ref) => TaskRepository(),
+);
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(),
+);
+final timerProvider = StateNotifierProvider<TimerNotifier, TimerStateData>((
+  ref,
+) {
+  return TimerNotifier(
+    ref.watch(taskRepositoryProvider),
+    ref.watch(settingsRepositoryProvider),
+    feedbackService: ref.watch(sessionFeedbackServiceProvider),
+    onSessionRecorded: () {
+      ref.read(statsRefreshProvider.notifier).state++;
+    },
+  );
 });
 
 class TimerNotifier extends StateNotifier<TimerStateData>
     with WidgetsBindingObserver {
+  static const _snapshotKey = 'timer_session_snapshot_v1';
   final TaskRepository _taskRepo;
   final SettingsRepository _settingsRepo;
+  final DateTime Function() _now;
+  final Uuid _uuid;
+  final SessionFeedbackService? _feedbackService;
+  final void Function()? _onSessionRecorded;
   Timer? _timer;
-  int? _startTime;
+  int? _startedAt;
+  int? _endsAt;
+  bool _completing = false;
 
-  TimerNotifier(this._taskRepo, this._settingsRepo)
-      : super(TimerStateData(
-          timeLeft: 25 * 60,
-          totalTime: 25 * 60,
-          state: TimerState.idle,
-          sessionType: SessionType.focus,
-        )) {
+  TimerNotifier(
+    this._taskRepo,
+    this._settingsRepo, {
+    DateTime Function()? now,
+    Uuid? uuid,
+    SessionFeedbackService? feedbackService,
+    void Function()? onSessionRecorded,
+  }) : _now = now ?? DateTime.now,
+       _uuid = uuid ?? const Uuid(),
+       _feedbackService = feedbackService,
+       _onSessionRecorded = onSessionRecorded,
+       super(
+         TimerStateData(
+           timeLeft: 25 * 60,
+           totalTime: 25 * 60,
+           state: TimerState.idle,
+           sessionType: SessionType.focus,
+         ),
+       ) {
     WidgetsBinding.instance.addObserver(this);
-    _loadSettings();
+    _restoreSnapshot();
   }
 
-  void _loadSettings() {
-    final focusDuration = _settingsRepo.focusDuration;
-    state = state.copyWith(
-      timeLeft: focusDuration * 60,
-      totalTime: focusDuration * 60,
-    );
+  void _restoreSnapshot() {
+    final raw = _settingsRepo.getString(_snapshotKey);
+    if (raw == null) {
+      _loadDefaultDuration();
+      return;
+    }
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final savedState = TimerState.values.byName(data['state'] as String);
+      final sessionType = SessionType.values.byName(
+        data['sessionType'] as String,
+      );
+      final taskData = data['task'] as Map<String, dynamic>?;
+      state = TimerStateData(
+        timeLeft: data['timeLeft'] as int,
+        totalTime: data['totalTime'] as int,
+        state: savedState,
+        sessionType: sessionType,
+        currentTask: taskData == null ? null : Task.fromJson(taskData),
+        completedSessions: data['completedSessions'] as int? ?? 0,
+      );
+      _startedAt = data['startedAt'] as int?;
+      _endsAt = data['endsAt'] as int?;
+      if (savedState == TimerState.running && _endsAt != null) {
+        _syncWithClock();
+        if (state.state == TimerState.running) _startTicker();
+      }
+    } catch (_) {
+      _clearSnapshot();
+      _loadDefaultDuration();
+    }
   }
+
+  void _loadDefaultDuration() {
+    final seconds = _settingsRepo.focusDuration * 60;
+    state = state.copyWith(timeLeft: seconds, totalTime: seconds);
+  }
+
+  Future<void> _persistSnapshot() => _settingsRepo.setString(
+    _snapshotKey,
+    jsonEncode({
+      'timeLeft': state.timeLeft,
+      'totalTime': state.totalTime,
+      'state': state.state.name,
+      'sessionType': state.sessionType.name,
+      'task': state.currentTask?.toJson(),
+      'completedSessions': state.completedSessions,
+      'startedAt': _startedAt,
+      'endsAt': _endsAt,
+    }),
+  );
+
+  Future<void> _clearSnapshot() => _settingsRepo.remove(_snapshotKey);
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
-    if (lifecycleState == AppLifecycleState.paused) {
-      if (state.state == TimerState.running) {
-        _timer?.cancel();
-      }
-    } else if (lifecycleState == AppLifecycleState.resumed) {
-      if (state.state == TimerState.running) {
-        _startTimer();
-      }
+    if (lifecycleState == AppLifecycleState.resumed &&
+        state.state == TimerState.running) {
+      _syncWithClock();
+      if (state.state == TimerState.running) _startTicker();
+    } else if (lifecycleState == AppLifecycleState.paused ||
+        lifecycleState == AppLifecycleState.inactive ||
+        lifecycleState == AppLifecycleState.detached) {
+      _timer?.cancel();
+      if (state.state == TimerState.running) _persistSnapshot();
     }
   }
 
@@ -114,131 +185,166 @@ class TimerNotifier extends StateNotifier<TimerStateData>
 
   void selectTask(Task task) {
     state = state.copyWith(currentTask: task);
+    _persistSnapshot();
   }
 
   void clearTask() {
     state = state.copyWith(clearTask: true);
+    _persistSnapshot();
   }
 
   void startTimer({Task? task}) {
-    if (task != null) {
-      state = state.copyWith(currentTask: task);
-    }
-
+    if (state.state == TimerState.running ||
+        state.state == TimerState.completed)
+      return;
+    if (task != null) state = state.copyWith(currentTask: task);
+    final now = _now().millisecondsSinceEpoch;
+    _startedAt ??= now;
+    _endsAt = now + state.timeLeft * 1000;
     state = state.copyWith(state: TimerState.running);
-    _startTime = DateTime.now().millisecondsSinceEpoch;
-    _startTimer();
+    _persistSnapshot();
+    _startTicker();
   }
 
-  void _startTimer() {
+  void _startTicker() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.timeLeft > 0) {
-        state = state.copyWith(timeLeft: state.timeLeft - 1);
-      } else {
-        _onTimerComplete();
-      }
-    });
+    _syncWithClock();
+    if (state.state != TimerState.running) return;
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _syncWithClock(),
+    );
+  }
+
+  void _syncWithClock() {
+    if (state.state != TimerState.running || _endsAt == null) return;
+    final milliseconds = _endsAt! - _now().millisecondsSinceEpoch;
+    final seconds = milliseconds <= 0 ? 0 : (milliseconds / 1000).ceil();
+    if (seconds != state.timeLeft) state = state.copyWith(timeLeft: seconds);
+    if (seconds == 0) _onTimerComplete();
   }
 
   void pauseTimer() {
+    if (state.state != TimerState.running) return;
+    _syncWithClock();
+    if (state.state != TimerState.running) return;
     _timer?.cancel();
+    _endsAt = null;
     state = state.copyWith(state: TimerState.paused);
+    _persistSnapshot();
   }
 
   void resumeTimer() {
-    state = state.copyWith(state: TimerState.running);
-    _startTimer();
+    if (state.state == TimerState.paused) startTimer();
   }
 
   void toggleTimer() {
-    if (state.state == TimerState.running) {
-      pauseTimer();
-    } else {
-      resumeTimer();
-    }
+    state.state == TimerState.running ? pauseTimer() : resumeTimer();
   }
 
   void resetTimer() {
     _timer?.cancel();
-    final duration = state.sessionType == SessionType.focus
-        ? _settingsRepo.focusDuration * 60
-        : state.sessionType == SessionType.shortBreak
-            ? _settingsRepo.breakDuration * 60
-            : _settingsRepo.longBreakDuration * 60;
+    final duration = _durationFor(state.sessionType);
+    _startedAt = null;
+    _endsAt = null;
+    _completing = false;
     state = state.copyWith(
       timeLeft: duration,
       totalTime: duration,
       state: TimerState.idle,
     );
+    _clearSnapshot();
   }
 
+  int _durationFor(SessionType type) => type == SessionType.focus
+      ? _settingsRepo.focusDuration * 60
+      : type == SessionType.shortBreak
+      ? _settingsRepo.breakDuration * 60
+      : _settingsRepo.longBreakDuration * 60;
+
   void abandonSession() {
-    _timer?.cancel();
     resetTimer();
     state = state.copyWith(clearTask: true);
   }
 
   Future<void> _onTimerComplete() async {
+    if (_completing || state.state != TimerState.running) return;
+    _completing = true;
     _timer?.cancel();
-    state = state.copyWith(state: TimerState.completed);
-
-    if (state.sessionType == SessionType.focus && _startTime != null) {
+    state = state.copyWith(timeLeft: 0, state: TimerState.completed);
+    await _persistSnapshot();
+    if (state.sessionType == SessionType.focus && _startedAt != null) {
       final session = FocusSession(
-        id: const Uuid().v4(),
+        id: _uuid.v4(),
         taskId: state.currentTask?.id,
         taskTitle: state.currentTask?.title,
         subject: state.currentTask?.subject ?? '其他',
-        startTime: _startTime!,
+        startTime: _startedAt!,
         duration: state.totalTime,
         type: 'focus',
-        dateKey: TimeFormatter.getTodayKey(),
+        dateKey: _dateKey(DateTime.fromMillisecondsSinceEpoch(_startedAt!)),
       );
       await _taskRepo.addSession(session);
-
-      if (state.currentTask != null) {
-        await _taskRepo.completeTask(state.currentTask!.id);
-      }
-
-      final newCompletedSessions = state.completedSessions + 1;
-      state = state.copyWith(completedSessions: newCompletedSessions);
+      _onSessionRecorded?.call();
+      state = state.copyWith(completedSessions: state.completedSessions + 1);
     }
-
-    _startTime = null;
+    await _feedbackService?.notifySessionCompleted(
+      isFocusSession: state.sessionType == SessionType.focus,
+      notificationsEnabled: _settingsRepo.notificationEnabled,
+      vibrationEnabled: _settingsRepo.vibrationEnabled,
+    );
+    _startedAt = null;
+    _endsAt = null;
+    _completing = false;
+    await _persistSnapshot();
   }
 
-  void startBreak() {
-    final isLongBreak =
-        (state.completedSessions > 0) &&
-        (state.completedSessions % _settingsRepo.longBreakInterval == 0);
-    final breakDuration = isLongBreak
-        ? _settingsRepo.longBreakDuration * 60
-        : _settingsRepo.breakDuration * 60;
+  String _dateKey(DateTime date) =>
+      "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-    state = state.copyWith(
-      timeLeft: breakDuration,
-      totalTime: breakDuration,
-      state: TimerState.idle,
-      sessionType: isLongBreak ? SessionType.longBreak : SessionType.shortBreak,
+  void startBreak({bool startImmediately = false}) {
+    if (state.sessionType != SessionType.focus ||
+        state.state != TimerState.completed)
+      return;
+    final interval = _settingsRepo.longBreakInterval;
+    final isLong =
+        interval > 0 &&
+        state.completedSessions > 0 &&
+        state.completedSessions % interval == 0;
+    _prepareSession(
+      isLong ? SessionType.longBreak : SessionType.shortBreak,
+      clearTask: false,
     );
+    if (startImmediately) startTimer();
   }
 
-  void switchToFocus() {
-    final focusDuration = _settingsRepo.focusDuration * 60;
+  void switchToFocus({bool startImmediately = false}) {
+    if (state.sessionType == SessionType.focus &&
+        state.state == TimerState.running)
+      return;
+    _prepareSession(SessionType.focus, clearTask: false);
+    if (startImmediately) startTimer();
+  }
+
+  void _prepareSession(SessionType type, {required bool clearTask}) {
+    _timer?.cancel();
+    _startedAt = null;
+    _endsAt = null;
+    _completing = false;
+    final duration = _durationFor(type);
     state = state.copyWith(
-      timeLeft: focusDuration,
-      totalTime: focusDuration,
+      timeLeft: duration,
+      totalTime: duration,
       state: TimerState.idle,
-      sessionType: SessionType.focus,
+      sessionType: type,
+      clearTask: clearTask,
     );
+    _persistSnapshot();
   }
 
   void setDuration(int minutes) {
-    if (state.state == TimerState.idle) {
-      state = state.copyWith(
-        timeLeft: minutes * 60,
-        totalTime: minutes * 60,
-      );
-    }
+    if (state.state != TimerState.idle || minutes <= 0) return;
+    state = state.copyWith(timeLeft: minutes * 60, totalTime: minutes * 60);
+    _persistSnapshot();
   }
 }

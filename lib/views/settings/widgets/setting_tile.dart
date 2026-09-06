@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 
 class SettingTile extends StatelessWidget {
@@ -31,11 +30,7 @@ class SettingTile extends StatelessWidget {
             child: Row(
               children: [
                 if (icon != null) ...[
-                  Icon(
-                    icon,
-                    size: 20,
-                    color: AppColors.textSecondary,
-                  ),
+                  Icon(icon, size: 20, color: AppColors.textSecondary),
                   const SizedBox(width: 16),
                 ],
                 Expanded(
@@ -50,11 +45,11 @@ class SettingTile extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           subtitle!,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
                         ),
                       ],
                     ],
@@ -138,16 +133,13 @@ class _DurationPickerSheetState extends State<DurationPickerSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            widget.title,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _CircleButton(
-                icon: PhosphorIcons.minus(PhosphorIconsStyle.regular),
+                icon: Icons.remove,
                 onTap: _decrement,
                 enabled: _value > widget.minValue,
               ),
@@ -158,14 +150,14 @@ class _DurationPickerSheetState extends State<DurationPickerSheet> {
                   '$_value',
                   key: ValueKey(_value),
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.w200,
-                        fontSize: 56,
-                      ),
+                    fontWeight: FontWeight.w200,
+                    fontSize: 56,
+                  ),
                 ),
               ),
               const SizedBox(width: 40),
               _CircleButton(
-                icon: PhosphorIcons.plus(PhosphorIconsStyle.regular),
+                icon: Icons.add,
                 onTap: _increment,
                 enabled: _value < widget.maxValue,
               ),
@@ -173,9 +165,9 @@ class _DurationPickerSheetState extends State<DurationPickerSheet> {
           ),
           Text(
             '分钟',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -186,8 +178,9 @@ class _DurationPickerSheetState extends State<DurationPickerSheet> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isDark ? AppColors.primaryDark : AppColors.primaryLight,
+                backgroundColor: isDark
+                    ? AppColors.primaryDark
+                    : AppColors.primaryLight,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -231,7 +224,7 @@ class _CircleButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: enabled
               ? (isDark ? AppColors.primaryDark : AppColors.primaryLight)
-                  .withValues(alpha: 0.1)
+                    .withValues(alpha: 0.1)
               : AppColors.dividerLight.withValues(alpha: 0.3),
           shape: BoxShape.circle,
         ),

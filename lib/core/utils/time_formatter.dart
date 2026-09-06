@@ -24,19 +24,11 @@ class TimeFormatter {
   /// 格式化分钟数为大字体显示格式
   static Map<String, dynamic> formatMinutesForDisplay(int totalMinutes) {
     if (totalMinutes < 60) {
-      return {
-        'hours': 0,
-        'minutes': totalMinutes,
-        'hasHours': false,
-      };
+      return {'hours': 0, 'minutes': totalMinutes, 'hasHours': false};
     }
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
-    return {
-      'hours': hours,
-      'minutes': minutes,
-      'hasHours': true,
-    };
+    return {'hours': hours, 'minutes': minutes, 'hasHours': true};
   }
 
   /// 获取今天的日期字符串 (YYYY-MM-DD)

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/time_formatter.dart';
 import '../../providers/timer_provider.dart';
@@ -103,6 +102,8 @@ class _FocusViewState extends ConsumerState<FocusView>
             if (timerState.state == TimerState.running ||
                 timerState.state == TimerState.paused)
               _buildAbandonButton(),
+            if (timerState.state == TimerState.completed)
+              _buildCompletionActions(timerState, subjectColor),
             const SizedBox(height: 100),
           ],
         ),
@@ -160,16 +161,13 @@ class _FocusViewState extends ConsumerState<FocusView>
         children: [
           TextSpan(
             text: '${task.title} · ',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w300,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w300),
           ),
           TextSpan(
             text: task.subject,
-            style: TextStyle(
-              color: subjectColor,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: subjectColor, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -190,10 +188,7 @@ class _FocusViewState extends ConsumerState<FocusView>
               tween: Tween(begin: 0, end: 1),
               duration: const Duration(milliseconds: 300),
               builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: child,
-                );
+                return Opacity(opacity: value, child: child);
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -204,19 +199,19 @@ class _FocusViewState extends ConsumerState<FocusView>
                       TimeFormatter.formatSeconds(timerState.timeLeft),
                       key: ValueKey(timerState.timeLeft),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            fontWeight: FontWeight.w200,
-                            fontSize: 72,
-                            letterSpacing: -2,
-                          ),
+                        fontWeight: FontWeight.w200,
+                        fontSize: 72,
+                        letterSpacing: -2,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     timerState.state == TimerState.idle ? '点击开始' : '剩余时间',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          letterSpacing: 2,
-                          color: AppColors.textSecondary,
-                        ),
+                      letterSpacing: 2,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -238,7 +233,7 @@ class _FocusViewState extends ConsumerState<FocusView>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _ControlButton(
-          icon: PhosphorIcons.arrowCounterClockwise(PhosphorIconsStyle.regular),
+          icon: Icons.refresh,
           onTap: () => ref.read(timerProvider.notifier).resetTimer(),
           size: 48,
         ),
@@ -246,9 +241,7 @@ class _FocusViewState extends ConsumerState<FocusView>
         ScaleTransition(
           scale: _pulseAnimation,
           child: _ControlButton(
-            icon: isRunning
-                ? PhosphorIcons.pause(PhosphorIconsStyle.fill)
-                : PhosphorIcons.play(PhosphorIconsStyle.fill),
+            icon: isRunning ? Icons.pause : Icons.play_arrow,
             onTap: () => ref.read(timerProvider.notifier).toggleTimer(),
             size: 72,
             isPrimary: true,
@@ -257,7 +250,7 @@ class _FocusViewState extends ConsumerState<FocusView>
         ),
         const SizedBox(width: 24),
         _ControlButton(
-          icon: PhosphorIcons.stop(PhosphorIconsStyle.regular),
+          icon: Icons.stop_outlined,
           onTap: _showAbandonConfirm,
           size: 48,
           iconColor: AppColors.error,
@@ -266,7 +259,10 @@ class _FocusViewState extends ConsumerState<FocusView>
     );
   }
 
-  Widget _buildDurationChips(TimerStateData timerState, SettingsState settings) {
+  Widget _buildDurationChips(
+    TimerStateData timerState,
+    SettingsState settings,
+  ) {
     final durations = [25, 45, 60, 90];
     final currentMinutes = timerState.totalTime ~/ 60;
 
@@ -281,16 +277,19 @@ class _FocusViewState extends ConsumerState<FocusView>
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: GestureDetector(
-                onTap: () => ref.read(timerProvider.notifier).setDuration(minutes),
+                onTap: () =>
+                    ref.read(timerProvider.notifier).setDuration(minutes),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? (Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.primaryDark
-                            : AppColors.primaryLight)
+                              ? AppColors.primaryDark
+                              : AppColors.primaryLight)
                         : AppColors.dividerLight.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -299,9 +298,7 @@ class _FocusViewState extends ConsumerState<FocusView>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.textPrimary,
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -319,9 +316,45 @@ class _FocusViewState extends ConsumerState<FocusView>
       child: Text(
         '放弃本次专注',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-              letterSpacing: 1,
-            ),
+          color: AppColors.textSecondary.withValues(alpha: 0.5),
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletionActions(
+    TimerStateData timerState,
+    Color subjectColor,
+  ) {
+    final completedFocus = timerState.sessionType == SessionType.focus;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Text(
+            completedFocus ? '本轮专注已完成' : '休息结束，准备继续',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () {
+              final notifier = ref.read(timerProvider.notifier);
+              if (completedFocus) {
+                notifier.startBreak(startImmediately: true);
+              } else {
+                notifier.switchToFocus(startImmediately: true);
+              }
+            },
+            icon: Icon(completedFocus ? Icons.coffee : Icons.play_arrow),
+            label: Text(completedFocus ? '开始休息' : '开始下一轮'),
+            style: FilledButton.styleFrom(backgroundColor: subjectColor),
+          ),
+          TextButton(
+            onPressed: () => ref.read(timerProvider.notifier).switchToFocus(),
+            child: Text(completedFocus ? '跳过休息' : '稍后开始'),
+          ),
+        ],
       ),
     );
   }
@@ -359,8 +392,9 @@ class _ControlButton extends StatelessWidget {
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: (primaryColor ?? AppColors.primaryLight)
-                        .withValues(alpha: 0.3),
+                    color: (primaryColor ?? AppColors.primaryLight).withValues(
+                      alpha: 0.3,
+                    ),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -389,9 +423,7 @@ class _StrictModeConfirmDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -408,23 +440,23 @@ class _StrictModeConfirmDialog extends StatelessWidget {
             child: Column(
               children: [
                 Icon(
-                  PhosphorIcons.warning(PhosphorIconsStyle.regular),
+                  Icons.warning_amber_rounded,
                   size: 48,
                   color: AppColors.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   '确定要放弃吗？',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '开启严苛模式后，不建议中途退出专注',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),

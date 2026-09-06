@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
 import '../../../providers/task_provider.dart';
@@ -8,10 +7,7 @@ import '../../../providers/task_provider.dart';
 class TaskSelectorSheet extends ConsumerWidget {
   final Function(Task?) onTaskSelected;
 
-  const TaskSelectorSheet({
-    super.key,
-    required this.onTaskSelected,
-  });
+  const TaskSelectorSheet({super.key, required this.onTaskSelected});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,16 +37,10 @@ class TaskSelectorSheet extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '选择专注任务',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text('选择专注任务', style: Theme.of(context).textTheme.titleLarge),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    PhosphorIcons.x(PhosphorIconsStyle.regular),
-                    color: AppColors.textSecondary,
-                  ),
+                  icon: Icon(Icons.close, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -62,7 +52,7 @@ class TaskSelectorSheet extends ConsumerWidget {
               child: Column(
                 children: [
                   Icon(
-                    PhosphorIcons.clipboardText(PhosphorIconsStyle.regular),
+                    Icons.assignment_outlined,
                     size: 48,
                     color: AppColors.textSecondary.withValues(alpha: 0.5),
                   ),
@@ -70,15 +60,15 @@ class TaskSelectorSheet extends ConsumerWidget {
                   Text(
                     '暂无待办任务',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '去计划页添加任务',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primaryLight,
-                        ),
+                      color: AppColors.primaryLight,
+                    ),
                   ),
                 ],
               ),
@@ -170,17 +160,14 @@ class _TaskItem extends StatelessWidget {
                       Text(
                         task.subject,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: subjectColor,
-                              fontSize: 12,
-                            ),
+                          color: subjectColor,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  PhosphorIcons.playCircle(PhosphorIconsStyle.regular),
-                  color: subjectColor,
-                ),
+                Icon(Icons.play_circle_outline, color: subjectColor),
               ],
             ),
           ),
@@ -215,17 +202,13 @@ class _FreeFocusButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  PhosphorIcons.lightning(PhosphorIconsStyle.regular),
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
+                Icon(Icons.bolt, size: 20, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Text(
                   '自由专注',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

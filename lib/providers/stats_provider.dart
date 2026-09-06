@@ -2,79 +2,81 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/daily_stats.dart';
 import '../data/models/focus_session.dart';
 import '../data/repositories/task_repository.dart';
-import '../core/utils/time_formatter.dart';
 import 'timer_provider.dart';
 
+final statsRefreshProvider = StateProvider<int>((ref) => 0);
+
 final statsProvider = Provider<StatsNotifier>((ref) {
-  final taskRepo = ref.watch(taskRepositoryProvider);
-  return StatsNotifier(taskRepo);
+  ref.watch(statsRefreshProvider);
+  return StatsNotifier(ref.watch(taskRepositoryProvider));
 });
 
 class StatsNotifier {
   final TaskRepository _taskRepo;
+  final DateTime Function() _now;
 
-  StatsNotifier(this._taskRepo);
+  StatsNotifier(this._taskRepo, {DateTime Function()? now})
+    : _now = now ?? DateTime.now;
 
-  DailyStats getTodayStats() {
-    final todayKey = TimeFormatter.getTodayKey();
-    final sessions = _taskRepo.getSessionsByDate(todayKey);
-    final totalMinutes =
-        sessions.fold(0, (sum, s) => sum + (s.duration ~/ 60));
+  DailyStats getTodayStats() => _statsForDate(_now());
+
+  List<DailyStats> getWeekStats() {
+    final now = _dateOnly(_now());
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    return _statsForRange(monday, 7);
+  }
+
+  List<DailyStats> getMonthStats() {
+    final now = _now();
+    final firstDay = DateTime(now.year, now.month);
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    return _statsForRange(firstDay, daysInMonth);
+  }
+
+  WeeklyStats getWeeklySummary() => _summary(getWeekStats());
+
+  WeeklyStats getMonthlySummary() => _summary(getMonthStats());
+
+  List<FocusSession> getRecentSessions({int limit = 10}) =>
+      _taskRepo.getRecentSessions(limit: limit);
+
+  List<DailyStats> _statsForRange(DateTime start, int dayCount) =>
+      List.generate(
+        dayCount,
+        (index) => _statsForDate(start.add(Duration(days: index))),
+      );
+
+  DailyStats _statsForDate(DateTime date) {
+    final dateKey = _dateKey(date);
+    final sessions = _taskRepo.getSessionsByDate(dateKey);
     final subjectMinutes = <String, int>{};
+    var totalMinutes = 0;
     for (final session in sessions) {
-      subjectMinutes[session.subject] =
-          (subjectMinutes[session.subject] ?? 0) + (session.duration ~/ 60);
+      final minutes = session.duration ~/ 60;
+      totalMinutes += minutes;
+      subjectMinutes.update(
+        session.subject,
+        (value) => value + minutes,
+        ifAbsent: () => minutes,
+      );
     }
     return DailyStats(
-      dateKey: todayKey,
+      dateKey: dateKey,
       totalMinutes: totalMinutes,
       completedPomodoros: sessions.length,
       subjectMinutes: subjectMinutes,
     );
   }
 
-  List<DailyStats> getWeekStats() {
-    final now = DateTime.now();
-    final monday = now.subtract(Duration(days: now.weekday - 1));
-    final List<DailyStats> weekStats = [];
+  WeeklyStats _summary(List<DailyStats> days) => WeeklyStats(
+    days: days,
+    totalMinutes: days.fold(0, (sum, day) => sum + day.totalMinutes),
+    totalPomodoros: days.fold(0, (sum, day) => sum + day.completedPomodoros),
+  );
 
-    for (int i = 0; i < 7; i++) {
-      final date = monday.add(Duration(days: i));
-      final dateKey =
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final sessions = _taskRepo.getSessionsByDate(dateKey);
-      final totalMinutes =
-          sessions.fold(0, (sum, s) => sum + (s.duration ~/ 60));
-      final subjectMinutes = <String, int>{};
-      for (final session in sessions) {
-        subjectMinutes[session.subject] =
-            (subjectMinutes[session.subject] ?? 0) + (session.duration ~/ 60);
-      }
-      weekStats.add(DailyStats(
-        dateKey: dateKey,
-        totalMinutes: totalMinutes,
-        completedPomodoros: sessions.length,
-        subjectMinutes: subjectMinutes,
-      ));
-    }
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
 
-    return weekStats;
-  }
-
-  WeeklyStats getWeeklySummary() {
-    final weekStats = getWeekStats();
-    final totalMinutes =
-        weekStats.fold(0, (sum, day) => sum + day.totalMinutes);
-    final totalPomodoros =
-        weekStats.fold(0, (sum, day) => sum + day.completedPomodoros);
-    return WeeklyStats(
-      days: weekStats,
-      totalMinutes: totalMinutes,
-      totalPomodoros: totalPomodoros,
-    );
-  }
-
-  List<FocusSession> getRecentSessions({int limit = 10}) {
-    return _taskRepo.getRecentSessions(limit: limit);
-  }
+  String _dateKey(DateTime value) =>
+      '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 }

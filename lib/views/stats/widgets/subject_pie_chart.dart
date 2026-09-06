@@ -26,9 +26,9 @@ class SubjectPieChart extends StatelessWidget {
       children: [
         Text(
           '学科分布',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         Row(
@@ -38,8 +38,12 @@ class SubjectPieChart extends StatelessWidget {
               height: 140,
               child: CustomPaint(
                 painter: _PieChartPainter(
-                  percentages: sortedEntries.map((e) => e.value / total * 100).toList(),
-                  colors: sortedEntries.map((e) => AppColors.getSubjectColor(e.key)).toList(),
+                  percentages: sortedEntries
+                      .map((e) => e.value / total * 100)
+                      .toList(),
+                  colors: sortedEntries
+                      .map((e) => AppColors.getSubjectColor(e.key))
+                      .toList(),
                 ),
                 child: Center(
                   child: Column(
@@ -48,9 +52,8 @@ class SubjectPieChart extends StatelessWidget {
                       if (centerText != null) ...[
                         Text(
                           centerText!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ],
@@ -84,11 +87,11 @@ class SubjectPieChart extends StatelessWidget {
                         ),
                         Text(
                           '${(entry.value / total * 100).toInt()}%',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textSecondary,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
                         ),
                       ],
                     ),
@@ -107,10 +110,7 @@ class _PieChartPainter extends CustomPainter {
   final List<double> percentages;
   final List<Color> colors;
 
-  _PieChartPainter({
-    required this.percentages,
-    required this.colors,
-  });
+  _PieChartPainter({required this.percentages, required this.colors});
 
   @override
   void paint(Canvas canvas, Size size) {

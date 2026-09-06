@@ -40,24 +40,25 @@ class SettingsState {
       longBreakInterval: longBreakInterval ?? this.longBreakInterval,
       strictMode: strictMode ?? this.strictMode,
       autoWhiteNoise: autoWhiteNoise ?? this.autoWhiteNoise,
-      notificationEnabled:
-          notificationEnabled ?? this.notificationEnabled,
+      notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
     );
   }
 }
 
-final settingsProvider =
-    StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
-  final settingsRepo = ref.watch(settingsRepositoryProvider);
-  return SettingsNotifier(settingsRepo);
-});
+final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
+  (ref) {
+    final settingsRepo = ref.watch(settingsRepositoryProvider);
+    return SettingsNotifier(settingsRepo);
+  },
+);
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
   final SettingsRepository _settingsRepo;
 
   SettingsNotifier(this._settingsRepo)
-      : super(SettingsState(
+    : super(
+        SettingsState(
           focusDuration: _settingsRepo.focusDuration,
           breakDuration: _settingsRepo.breakDuration,
           longBreakDuration: _settingsRepo.longBreakDuration,
@@ -66,7 +67,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           autoWhiteNoise: _settingsRepo.autoWhiteNoise,
           notificationEnabled: _settingsRepo.notificationEnabled,
           vibrationEnabled: _settingsRepo.vibrationEnabled,
-        ));
+        ),
+      );
 
   Future<void> setFocusDuration(int minutes) async {
     await _settingsRepo.setFocusDuration(minutes);

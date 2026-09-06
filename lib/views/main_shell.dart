@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 
 class MainShell extends StatelessWidget {
@@ -65,29 +64,29 @@ class MainShell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavItem(
-                  icon: PhosphorIcons.timer(PhosphorIconsStyle.regular),
-                  activeIcon: PhosphorIcons.timer(PhosphorIconsStyle.fill),
+                  icon: Icons.timer_outlined,
+                  activeIcon: Icons.timer,
                   label: '专注',
                   isActive: currentIndex == 0,
                   onTap: () => _onTap(context, 0),
                 ),
                 _NavItem(
-                  icon: PhosphorIcons.calendarBlank(PhosphorIconsStyle.regular),
-                  activeIcon: PhosphorIcons.calendarBlank(PhosphorIconsStyle.fill),
+                  icon: Icons.calendar_today_outlined,
+                  activeIcon: Icons.calendar_today,
                   label: '计划',
                   isActive: currentIndex == 1,
                   onTap: () => _onTap(context, 1),
                 ),
                 _NavItem(
-                  icon: PhosphorIcons.chartBar(PhosphorIconsStyle.regular),
-                  activeIcon: PhosphorIcons.chartBar(PhosphorIconsStyle.fill),
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart,
                   label: '统计',
                   isActive: currentIndex == 2,
                   onTap: () => _onTap(context, 2),
                 ),
                 _NavItem(
-                  icon: PhosphorIcons.gear(PhosphorIconsStyle.regular),
-                  activeIcon: PhosphorIcons.gear(PhosphorIconsStyle.fill),
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings,
                   label: '设置',
                   isActive: currentIndex == 3,
                   onTap: () => _onTap(context, 3),
@@ -120,7 +119,9 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = isDark ? AppColors.primaryDark : AppColors.primaryLight;
-    final inactiveColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final inactiveColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondary;
 
     return GestureDetector(
       onTap: onTap,
@@ -129,7 +130,9 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive
+              ? activeColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(

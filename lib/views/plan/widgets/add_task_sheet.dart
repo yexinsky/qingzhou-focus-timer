@@ -1,148 +1,195 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/task.dart';
 
 class AddTaskSheet extends StatefulWidget {
-  final Function(String title, String subject) onAdd;
-
-  const AddTaskSheet({super.key, required this.onAdd});
-
+  final Task? task;
+  final DateTime initialDate;
+  final ValueChanged<Task> onSave;
+  const AddTaskSheet({
+    super.key,
+    this.task,
+    required this.initialDate,
+    required this.onSave,
+  });
   @override
   State<AddTaskSheet> createState() => _AddTaskSheetState();
 }
 
 class _AddTaskSheetState extends State<AddTaskSheet> {
-  final _titleController = TextEditingController();
-  String _selectedSubject = '其他';
+  late final TextEditingController _title;
+  late final TextEditingController _note;
+  late String _subject;
+  late DateTime _date;
+  late int _priority;
+  late int _estimated;
+  final _subjects = const ['政治', '英语', '数学', '专业课', '其他'];
 
-  final _subjects = ['政治', '英语', '数学', '专业课', '其他'];
+  @override
+  void initState() {
+    super.initState();
+    final task = widget.task;
+    _title = TextEditingController(text: task?.title ?? '');
+    _note = TextEditingController(text: task?.note ?? '');
+    _subject = task?.subject ?? '其他';
+    _date = task == null ? widget.initialDate : DateTime.parse(task.dateKey);
+    _priority = task?.priority ?? 1;
+    _estimated = task?.estimatedPomodoros ?? 1;
+  }
 
   @override
   void dispose() {
-    _titleController.dispose();
+    _title.dispose();
+    _note.dispose();
     super.dispose();
   }
 
+  String _key(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  Future<void> _pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (value != null) setState(() => _date = value);
+  }
+
   void _submit() {
-    if (_titleController.text.trim().isEmpty) return;
-    widget.onAdd(_titleController.text.trim(), _selectedSubject);
+    if (_title.text.trim().isEmpty) return;
+    final old = widget.task;
+    widget.onSave(
+      Task(
+        id: old?.id ?? '',
+        title: _title.text.trim(),
+        subject: _subject,
+        completed: old?.completed ?? false,
+        dateKey: _key(_date),
+        createdAt: old?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+        priority: _priority,
+        note: _note.text.trim(),
+        estimatedPomodoros: _estimated,
+      ),
+    );
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textSecondary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.task == null ? '添加任务' : '编辑任务',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _title,
+              autofocus: widget.task == null,
+              decoration: const InputDecoration(
+                labelText: '任务名称',
+                border: OutlineInputBorder(),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            '添加任务',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _titleController,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: '输入任务名称',
-              hintStyle: TextStyle(color: AppColors.textSecondary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+            const SizedBox(height: 12),
+            TextField(
+              controller: _note,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: '备注（可选）',
+                border: OutlineInputBorder(),
               ),
-              filled: true,
-              fillColor: AppColors.dividerLight.withValues(alpha: 0.5),
-              contentPadding: const EdgeInsets.all(16),
             ),
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            '选择学科',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _subjects.map((subject) {
-              final isSelected = _selectedSubject == subject;
-              final color = AppColors.getSubjectColor(subject);
-              return GestureDetector(
-                onTap: () => setState(() => _selectedSubject = subject),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? color
-                        : color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? color
-                          : color.withValues(alpha: 0.3),
+            const SizedBox(height: 16),
+            const Text('学科'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _subjects
+                  .map(
+                    (s) => ChoiceChip(
+                      label: Text(s),
+                      selected: _subject == s,
+                      onSelected: (_) => setState(() => _subject = s),
+                      selectedColor: AppColors.getSubjectColor(
+                        s,
+                      ).withValues(alpha: .3),
                     ),
-                  ),
-                  child: Text(
-                    subject,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : color,
-                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_today_outlined),
+                    label: Text('${_date.month}月${_date.day}日'),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _priority,
+                    decoration: const InputDecoration(
+                      labelText: '优先级',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 0, child: Text('低')),
+                      DropdownMenuItem(value: 1, child: Text('普通')),
+                      DropdownMenuItem(value: 2, child: Text('高')),
+                    ],
+                    onChanged: (v) => setState(() => _priority = v ?? 1),
+                  ),
                 ),
-              ),
-              child: const Text(
-                '确定',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('预计番茄数'),
+                const Spacer(),
+                IconButton(
+                  onPressed: _estimated > 1
+                      ? () => setState(() => _estimated--)
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                Text('$_estimated'),
+                IconButton(
+                  onPressed: () => setState(() => _estimated++),
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submit,
+                child: Text(widget.task == null ? '添加' : '保存'),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

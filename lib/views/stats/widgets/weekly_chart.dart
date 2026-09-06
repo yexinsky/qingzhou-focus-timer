@@ -6,17 +6,17 @@ class WeeklyChart extends StatelessWidget {
   final List<double> values;
   final List<String> labels;
 
-  const WeeklyChart({
-    super.key,
-    required this.values,
-    required this.labels,
-  });
+  const WeeklyChart({super.key, required this.values, required this.labels});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
-    final primaryColor = isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    final maxValue = values.isEmpty
+        ? 0.0
+        : values.reduce((a, b) => a > b ? a : b);
+    final primaryColor = isDark
+        ? AppColors.primaryDark
+        : AppColors.primaryLight;
 
     return Container(
       height: 180,
@@ -33,7 +33,10 @@ class WeeklyChart extends StatelessWidget {
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => primaryColor,
-              tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
               tooltipMargin: 8,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(

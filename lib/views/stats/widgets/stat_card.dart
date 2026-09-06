@@ -45,15 +45,17 @@ class StatCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1,
-                      color: AppColors.textSecondary,
-                    ),
+                  letterSpacing: 1,
+                  color: AppColors.textSecondary,
+                ),
               ),
               if (icon != null)
                 Icon(
                   icon,
                   size: 18,
-                  color: (iconColor ?? AppColors.primaryLight).withValues(alpha: 0.4),
+                  color: (iconColor ?? AppColors.primaryLight).withValues(
+                    alpha: 0.4,
+                  ),
                 ),
             ],
           ),
@@ -65,18 +67,18 @@ class StatCard extends StatelessWidget {
               Text(
                 value,
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w200,
-                      fontSize: 48,
-                    ),
+                  fontWeight: FontWeight.w200,
+                  fontSize: 48,
+                ),
               ),
               if (unit != null) ...[
                 const SizedBox(width: 4),
                 Text(
                   unit!,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        color: AppColors.textSecondary,
-                      ),
+                    fontWeight: FontWeight.w300,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ],
@@ -86,8 +88,8 @@ class StatCard extends StatelessWidget {
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  ),
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ],
