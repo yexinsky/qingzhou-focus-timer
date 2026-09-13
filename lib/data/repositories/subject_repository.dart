@@ -106,8 +106,9 @@ class SubjectRepository {
     final used = _active.map((s) => Color(s.colorValue)).toSet();
     return AppColors.customSubjectPalette.firstWhere(
       (color) => !used.contains(color),
-      orElse: () => AppColors.customSubjectPalette[_active.length %
-          AppColors.customSubjectPalette.length],
+      orElse: () =>
+          AppColors.customSubjectPalette[_active.length %
+              AppColors.customSubjectPalette.length],
     );
   }
 
@@ -118,9 +119,7 @@ class SubjectRepository {
   }
 
   List<SubjectOption> _decodeList(dynamic raw) => (raw as List<dynamic>? ?? [])
-      .map(
-        (item) => SubjectOption.fromJson((item as Map<String, dynamic>)),
-      )
+      .map((item) => SubjectOption.fromJson((item as Map<String, dynamic>)))
       .toList();
 
   List<SubjectOption> _defaultSubjects() => [

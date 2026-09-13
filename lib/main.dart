@@ -24,8 +24,7 @@ Future<void> main() async {
     );
     // 手机锁定竖屏；平板（逻辑最短边 > 600dp）放开旋转，配合内容限宽布局
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final shortestSide =
-        view.physicalSize.shortestSide / view.devicePixelRatio;
+    final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
     final portraitOnly = shortestSide > 600
         ? DeviceOrientation.values
         : <DeviceOrientation>[DeviceOrientation.portraitUp];

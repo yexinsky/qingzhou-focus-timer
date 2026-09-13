@@ -82,8 +82,8 @@ class _FocusViewState extends ConsumerState<FocusView>
     final timerState = ref.watch(timerProvider);
     final settings = ref.watch(settingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final focusTargetColor = timerState.currentTask?.subject ??
-        timerState.currentSubject;
+    final focusTargetColor =
+        timerState.currentTask?.subject ?? timerState.currentSubject;
     final subjectColor = focusTargetColor != null
         ? AppColors.getSubjectColor(focusTargetColor)
         : (isDark ? AppColors.primaryDark : AppColors.primaryLight);
@@ -221,51 +221,54 @@ class _FocusViewState extends ConsumerState<FocusView>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          TimerRing(
-            progress: timerState.progress,
-            progressColor: subjectColor,
-            size: 280,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 300),
-              builder: (context, value, child) {
-                return Opacity(opacity: value, child: child);
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Text(
-                      TimeFormatter.formatSeconds(timerState.displayedSeconds),
-                      key: ValueKey(timerState.displayedSeconds),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.w200,
-                        fontSize: 72,
-                        letterSpacing: -2,
+            TimerRing(
+              progress: timerState.progress,
+              progressColor: subjectColor,
+              size: 280,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 300),
+                builder: (context, value, child) {
+                  return Opacity(opacity: value, child: child);
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(
+                        TimeFormatter.formatSeconds(
+                          timerState.displayedSeconds,
+                        ),
+                        key: ValueKey(timerState.displayedSeconds),
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              fontWeight: FontWeight.w200,
+                              fontSize: 72,
+                              letterSpacing: -2,
+                            ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    timerState.state == TimerState.idle
-                        ? '点击开始'
-                        : timerState.isFlexible
-                        ? '累计时间'
-                        : '剩余时间',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      letterSpacing: 2,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 8),
+                    Text(
+                      timerState.state == TimerState.idle
+                          ? '点击开始'
+                          : timerState.isFlexible
+                          ? '累计时间'
+                          : '剩余时间',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        letterSpacing: 2,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 40),
-          if (timerState.state == TimerState.running ||
-              timerState.state == TimerState.paused)
-            _buildControlButtons(timerState, subjectColor),
+            const SizedBox(height: 40),
+            if (timerState.state == TimerState.running ||
+                timerState.state == TimerState.paused)
+              _buildControlButtons(timerState, subjectColor),
           ],
         ),
       ),

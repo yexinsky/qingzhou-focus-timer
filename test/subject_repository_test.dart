@@ -36,10 +36,7 @@ void main() {
     expect(await repository.add('日语'), isTrue);
     expect(names(repository).last, '日语');
     final japaneseColor = repository.subjects.last.color;
-    expect(
-      AppColors.customSubjectPalette.contains(japaneseColor),
-      isTrue,
-    );
+    expect(AppColors.customSubjectPalette.contains(japaneseColor), isTrue);
     final presetColors = repository.subjects
         .take(AppColors.presetSubjectNames.length)
         .map((s) => s.color)
@@ -106,14 +103,16 @@ void main() {
     expect(notifier.state.map((s) => s.name), isNot(contains('二外')));
   });
 
-  test('palette color assignment skips colors used by active subjects',
-      () async {
-    final repository = await createRepository();
-    await repository.add('科目A');
-    await repository.add('科目B');
-    expect(repository.subjects[5].color, AppColors.customSubjectPalette[0]);
-    expect(repository.subjects[6].color, AppColors.customSubjectPalette[1]);
-  });
+  test(
+    'palette color assignment skips colors used by active subjects',
+    () async {
+      final repository = await createRepository();
+      await repository.add('科目A');
+      await repository.add('科目B');
+      expect(repository.subjects[5].color, AppColors.customSubjectPalette[0]);
+      expect(repository.subjects[6].color, AppColors.customSubjectPalette[1]);
+    },
+  );
 
   test('Color round-trips through stored int value', () async {
     const color = Color(0xFF6B8E71);

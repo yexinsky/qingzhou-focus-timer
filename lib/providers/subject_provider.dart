@@ -6,10 +6,10 @@ final subjectRepositoryProvider = Provider<SubjectRepository>(
   (ref) => SubjectRepository(),
 );
 
-final subjectsProvider = StateNotifierProvider<SubjectsNotifier,
-    List<SubjectOption>>((ref) {
-  return SubjectsNotifier(ref.watch(subjectRepositoryProvider));
-});
+final subjectsProvider =
+    StateNotifierProvider<SubjectsNotifier, List<SubjectOption>>((ref) {
+      return SubjectsNotifier(ref.watch(subjectRepositoryProvider));
+    });
 
 class SubjectsNotifier extends StateNotifier<List<SubjectOption>> {
   final SubjectRepository _repository;

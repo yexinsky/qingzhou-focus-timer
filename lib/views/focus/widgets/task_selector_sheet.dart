@@ -37,127 +37,134 @@ class TaskSelectorSheet extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: AppColors.textSecondary.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('选择专注任务', style: Theme.of(context).textTheme.titleLarge),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: AppColors.textSecondary),
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (onSubjectSelected != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Text(
-                    '按科目专注',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '选择专注任务',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (onSubjectSelected != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Text(
+                        '按科目专注',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      _ManageSubjectsButton(dark: isDark),
+                    ],
+                  ),
+                ),
+                if (subjects.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: subjects
+                          .map(
+                            (subject) => _SubjectChip(
+                              subject: subject.name,
+                              color: subject.color,
+                              onTap: () {
+                                onSubjectSelected!(subject.name);
+                                Navigator.pop(context);
+                              },
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
-                  const Spacer(),
-                  _ManageSubjectsButton(dark: isDark),
                 ],
+                const SizedBox(height: 16),
+              ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  '今日待办',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
-            ),
-            if (subjects.isNotEmpty) ...[
               const SizedBox(height: 8),
+              if (incompleteTasks.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.assignment_outlined,
+                        size: 40,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '暂无待办任务，可按科目直接专注',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: incompleteTasks.length,
+                  itemBuilder: (context, index) {
+                    final task = incompleteTasks[index];
+                    final subjectColor = AppColors.getSubjectColor(
+                      task.subject,
+                    );
+                    return _TaskItem(
+                      task: task,
+                      subjectColor: subjectColor,
+                      onTap: () {
+                        onTaskSelected(task);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: subjects
-                      .map((subject) => _SubjectChip(
-                            subject: subject.name,
-                            color: subject.color,
-                            onTap: () {
-                              onSubjectSelected!(subject.name);
-                              Navigator.pop(context);
-                            },
-                          ))
-                      .toList(),
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-          ],
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              '今日待办',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (incompleteTasks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.assignment_outlined,
-                    size: 40,
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '暂无待办任务，可按科目直接专注',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: incompleteTasks.length,
-              itemBuilder: (context, index) {
-                final task = incompleteTasks[index];
-                final subjectColor = AppColors.getSubjectColor(task.subject);
-                return _TaskItem(
-                  task: task,
-                  subjectColor: subjectColor,
+                child: _FreeFocusButton(
                   onTap: () {
-                    onTaskSelected(task);
+                    onTaskSelected(null);
                     Navigator.pop(context);
                   },
-                );
-              },
-            ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _FreeFocusButton(
-              onTap: () {
-                onTaskSelected(null);
-                Navigator.pop(context);
-              },
-            ),
-          ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
           ),
         ),

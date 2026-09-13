@@ -53,7 +53,8 @@ class SessionFeedbackService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    _exactAlarmsAllowed = await android?.canScheduleExactNotifications() ?? false;
+    _exactAlarmsAllowed =
+        await android?.canScheduleExactNotifications() ?? false;
   }
 
   Future<bool> requestNotificationPermission() async {

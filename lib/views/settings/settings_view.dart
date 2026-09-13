@@ -475,7 +475,9 @@ class _BatteryOptimizationTileState
       icon: ignoring == false ? Icons.warning_amber_rounded : null,
       onTap: () => BatteryGuideSheet.show(context),
       trailing: TextButton(
-        onPressed: ignoring == false ? _request : () => BatteryGuideSheet.show(context),
+        onPressed: ignoring == false
+            ? _request
+            : () => BatteryGuideSheet.show(context),
         child: Text(ignoring == false ? '去开启' : '设置路径'),
       ),
     );
