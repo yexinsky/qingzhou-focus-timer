@@ -62,6 +62,58 @@ void main() {
     expect(notifier.state.currentTask, isNull);
   });
 
+  test('subject focus is mutually exclusive with task focus', () async {
+    final notifier = await createNotifier();
+    addTearDown(notifier.dispose);
+    final task = Task(
+      id: '1',
+      title: '高数',
+      subject: '数学',
+      dateKey: '2026-09-06',
+      createdAt: 1,
+    );
+    notifier.selectSubject('英语');
+    expect(notifier.state.currentSubject, '英语');
+    expect(notifier.state.currentTask, isNull);
+    notifier.selectTask(task);
+    expect(notifier.state.currentSubject, isNull);
+    expect(notifier.state.currentTask?.id, '1');
+    notifier.abandonSession();
+    expect(notifier.state.currentTask, isNull);
+    expect(notifier.state.currentSubject, isNull);
+  });
+
+  test('finished flexible subject session records subject and title', () async {
+    var clock = DateTime(2026, 9, 6, 10);
+    final notifier = await createNotifier(now: () => clock);
+    addTearDown(notifier.dispose);
+    notifier.setFocusTimerMode(FocusTimerMode.stopwatch);
+    notifier.selectSubject('数学');
+    notifier.startTimer();
+    clock = clock.add(const Duration(seconds: 30));
+    expect(await notifier.finishFlexibleSession(), isTrue);
+    final session = taskRepository.sessions.values.single;
+    expect(session.subject, '数学');
+    expect(session.taskTitle, '数学');
+    expect(session.taskId, isNull);
+    expect(session.duration, 30);
+    // 专注目标在结束后保留，便于连续进行同一科目/任务的专注
+    expect(notifier.state.currentSubject, '数学');
+  });
+
+  test('subject selection survives snapshot round-trip', () async {
+    SharedPreferences.setMockInitialValues({
+      'timer_session_snapshot_v1':
+          '{"timeLeft":1500,"totalTime":1500,"state":"running","sessionType":"focus","task":null,"subject":"专业课","completedSessions":0,"startedAt":null,"endsAt":null}',
+    });
+    settingsRepository = SettingsRepository();
+    await settingsRepository.init();
+    final notifier = TimerNotifier(TestTaskRepository(), settingsRepository);
+    addTearDown(notifier.dispose);
+    expect(notifier.state.currentSubject, '专业课');
+    expect(notifier.state.currentTask, isNull);
+  });
+
   test(
     'pause freezes clock-derived remaining time and resume runs again',
     () async {

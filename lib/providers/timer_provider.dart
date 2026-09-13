@@ -23,6 +23,9 @@ class TimerStateData {
   final TimerState state;
   final SessionType sessionType;
   final Task? currentTask;
+
+  /// 选中但未建任务的科目（科目专注模式），与 [currentTask] 互斥。
+  final String? currentSubject;
   final int completedSessions;
   final FocusTimerMode focusTimerMode;
 
@@ -32,6 +35,7 @@ class TimerStateData {
     required this.state,
     required this.sessionType,
     this.currentTask,
+    this.currentSubject,
     this.completedSessions = 0,
     this.focusTimerMode = FocusTimerMode.countdown,
   });
@@ -42,15 +46,20 @@ class TimerStateData {
     TimerState? state,
     SessionType? sessionType,
     Task? currentTask,
+    String? currentSubject,
     int? completedSessions,
     FocusTimerMode? focusTimerMode,
     bool clearTask = false,
+    bool clearSubject = false,
   }) => TimerStateData(
     timeLeft: timeLeft ?? this.timeLeft,
     totalTime: totalTime ?? this.totalTime,
     state: state ?? this.state,
     sessionType: sessionType ?? this.sessionType,
     currentTask: clearTask ? null : (currentTask ?? this.currentTask),
+    currentSubject: clearSubject
+        ? null
+        : (currentSubject ?? this.currentSubject),
     completedSessions: completedSessions ?? this.completedSessions,
     focusTimerMode: focusTimerMode ?? this.focusTimerMode,
   );
@@ -138,6 +147,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
         state: savedState,
         sessionType: sessionType,
         currentTask: taskData == null ? null : Task.fromJson(taskData),
+        currentSubject: data['subject'] as String?,
         completedSessions: data['completedSessions'] as int? ?? 0,
         focusTimerMode: FocusTimerMode.values.byName(
           data['focusTimerMode'] as String? ?? 'countdown',
@@ -168,6 +178,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       'state': state.state.name,
       'sessionType': state.sessionType.name,
       'task': state.currentTask?.toJson(),
+      'subject': state.currentSubject,
       'completedSessions': state.completedSessions,
       'focusTimerMode': state.focusTimerMode.name,
       'startedAt': _startedAt,
@@ -199,12 +210,17 @@ class TimerNotifier extends StateNotifier<TimerStateData>
   }
 
   void selectTask(Task task) {
-    state = state.copyWith(currentTask: task);
+    state = state.copyWith(currentTask: task, clearSubject: true);
+    _persistSnapshot();
+  }
+
+  void selectSubject(String subject) {
+    state = state.copyWith(currentSubject: subject, clearTask: true);
     _persistSnapshot();
   }
 
   void clearTask() {
-    state = state.copyWith(clearTask: true);
+    state = state.copyWith(clearTask: true, clearSubject: true);
     _persistSnapshot();
   }
 
@@ -297,7 +313,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
 
   void abandonSession() {
     resetTimer();
-    state = state.copyWith(clearTask: true);
+    state = state.copyWith(clearTask: true, clearSubject: true);
   }
 
   Future<void> _onTimerComplete() async {
@@ -310,8 +326,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       final session = FocusSession(
         id: _uuid.v4(),
         taskId: state.currentTask?.id,
-        taskTitle: state.currentTask?.title,
-        subject: state.currentTask?.subject ?? '其他',
+        taskTitle: state.currentTask?.title ?? state.currentSubject,
+        subject: state.currentTask?.subject ?? state.currentSubject ?? '其他',
         startTime: _startedAt!,
         duration: state.totalTime,
         type: 'focus',
@@ -408,8 +424,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     final session = FocusSession(
       id: _uuid.v4(),
       taskId: state.currentTask?.id,
-      taskTitle: state.currentTask?.title,
-      subject: state.currentTask?.subject ?? '其他',
+      taskTitle: state.currentTask?.title ?? state.currentSubject,
+      subject: state.currentTask?.subject ?? state.currentSubject ?? '其他',
       startTime: _startedAt!,
       duration: duration,
       type: 'focus',

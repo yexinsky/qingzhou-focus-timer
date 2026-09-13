@@ -51,6 +51,11 @@ class _FocusViewState extends ConsumerState<FocusView>
           }
           ref.read(timerProvider.notifier).startTimer(task: task);
         },
+        onSubjectSelected: (subject) {
+          final notifier = ref.read(timerProvider.notifier);
+          notifier.selectSubject(subject);
+          notifier.startTimer();
+        },
       ),
     );
   }
@@ -77,8 +82,10 @@ class _FocusViewState extends ConsumerState<FocusView>
     final timerState = ref.watch(timerProvider);
     final settings = ref.watch(settingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final subjectColor = timerState.currentTask != null
-        ? AppColors.getSubjectColor(timerState.currentTask!.subject)
+    final focusTargetColor = timerState.currentTask?.subject ??
+        timerState.currentSubject;
+    final subjectColor = focusTargetColor != null
+        ? AppColors.getSubjectColor(focusTargetColor)
         : (isDark ? AppColors.primaryDark : AppColors.primaryLight);
 
     return Scaffold(
@@ -107,6 +114,9 @@ class _FocusViewState extends ConsumerState<FocusView>
             if (timerState.currentTask != null) ...[
               const SizedBox(height: 24),
               _buildTaskInfo(timerState.currentTask!, subjectColor),
+            ] else if (timerState.currentSubject != null) ...[
+              const SizedBox(height: 24),
+              _buildSubjectInfo(timerState.currentSubject!, subjectColor),
             ] else ...[
               const SizedBox(height: 24),
             ],
@@ -188,6 +198,16 @@ class _FocusViewState extends ConsumerState<FocusView>
             style: TextStyle(color: subjectColor, fontWeight: FontWeight.w500),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectInfo(String subject, Color subjectColor) {
+    return Text(
+      subject,
+      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w300,
+        color: subjectColor,
       ),
     );
   }

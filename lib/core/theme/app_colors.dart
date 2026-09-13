@@ -17,7 +17,7 @@ class AppColors {
   static const Color textPrimaryDark = Color(0xFFFAFAFA);
   static const Color textSecondaryDark = Color(0xFFB0B0B0);
 
-  // 学科专属色
+  // 学科专属色（预设科目）
   static const Color subjectPolitics = Color(0xFF725959); // 政治 - 绛红
   static const Color subjectEnglish = Color(0xFF516074); // 英语 - 雾霾蓝
   static const Color subjectMath = Color(0xFF426464); // 数学 - 豆绿
@@ -32,6 +32,15 @@ class AppColors {
     '专业课': subjectMajor,
     '其他': subjectOther,
   };
+
+  // 固定科目名单（考研科目，可直接按科目专注）
+  static const List<String> subjectNames = [
+    '政治',
+    '英语',
+    '数学',
+    '专业课',
+    '其他',
+  ];
 
   // 获取学科颜色
   static Color getSubjectColor(String subject) {

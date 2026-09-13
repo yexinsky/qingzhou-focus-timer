@@ -6,8 +6,13 @@ import '../../../providers/task_provider.dart';
 
 class TaskSelectorSheet extends ConsumerWidget {
   final Function(Task?) onTaskSelected;
+  final Function(String subject)? onSubjectSelected;
 
-  const TaskSelectorSheet({super.key, required this.onTaskSelected});
+  const TaskSelectorSheet({
+    super.key,
+    required this.onTaskSelected,
+    this.onSubjectSelected,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,28 +51,66 @@ class TaskSelectorSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+          if (onSubjectSelected != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '按科目专注',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: AppColors.subjectNames
+                    .map((subject) => _SubjectChip(
+                          subject: subject,
+                          onTap: () {
+                            onSubjectSelected!(subject);
+                            Navigator.pop(context);
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '今日待办',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (incompleteTasks.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(40),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
                   Icon(
                     Icons.assignment_outlined,
-                    size: 48,
+                    size: 40,
                     color: AppColors.textSecondary.withValues(alpha: 0.5),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    '暂无待办任务',
+                    '暂无待办任务，可按科目直接专注',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '去计划页添加任务',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primaryLight,
                     ),
                   ),
                 ],
@@ -170,6 +213,54 @@ class _TaskItem extends StatelessWidget {
                 Icon(Icons.play_circle_outline, color: subjectColor),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SubjectChip extends StatelessWidget {
+  final String subject;
+  final VoidCallback onTap;
+
+  const _SubjectChip({required this.subject, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final subjectColor = AppColors.getSubjectColor(subject);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: subjectColor.withValues(alpha: 0.08),
+            border: Border.all(color: subjectColor.withValues(alpha: 0.35)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: subjectColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                subject,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: subjectColor,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ),
       ),
