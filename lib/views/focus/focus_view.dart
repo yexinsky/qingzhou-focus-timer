@@ -178,13 +178,11 @@ class _FocusViewState extends ConsumerState<FocusView>
   Widget _buildTaskInfo(Task task, Color subjectColor) {
     return Text.rich(
       TextSpan(
+        style: Theme.of(
+          context,
+        ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w300),
         children: [
-          TextSpan(
-            text: '${task.title} · ',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w300),
-          ),
+          TextSpan(text: '${task.title} · '),
           TextSpan(
             text: task.subject,
             style: TextStyle(color: subjectColor, fontWeight: FontWeight.w500),
