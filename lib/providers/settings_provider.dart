@@ -11,6 +11,7 @@ class SettingsState {
   final bool autoWhiteNoise;
   final bool notificationEnabled;
   final bool vibrationEnabled;
+  final bool screenAlwaysOn;
 
   SettingsState({
     required this.focusDuration,
@@ -21,6 +22,7 @@ class SettingsState {
     required this.autoWhiteNoise,
     required this.notificationEnabled,
     required this.vibrationEnabled,
+    required this.screenAlwaysOn,
   });
 
   SettingsState copyWith({
@@ -32,6 +34,7 @@ class SettingsState {
     bool? autoWhiteNoise,
     bool? notificationEnabled,
     bool? vibrationEnabled,
+    bool? screenAlwaysOn,
   }) {
     return SettingsState(
       focusDuration: focusDuration ?? this.focusDuration,
@@ -42,6 +45,7 @@ class SettingsState {
       autoWhiteNoise: autoWhiteNoise ?? this.autoWhiteNoise,
       notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
+      screenAlwaysOn: screenAlwaysOn ?? this.screenAlwaysOn,
     );
   }
 }
@@ -67,6 +71,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           autoWhiteNoise: _settingsRepo.autoWhiteNoise,
           notificationEnabled: _settingsRepo.notificationEnabled,
           vibrationEnabled: _settingsRepo.vibrationEnabled,
+          screenAlwaysOn: _settingsRepo.screenAlwaysOn,
         ),
       );
 
@@ -110,5 +115,10 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setVibrationEnabled(bool enabled) async {
     await _settingsRepo.setVibrationEnabled(enabled);
     state = state.copyWith(vibrationEnabled: enabled);
+  }
+
+  Future<void> setScreenAlwaysOn(bool enabled) async {
+    await _settingsRepo.setScreenAlwaysOn(enabled);
+    state = state.copyWith(screenAlwaysOn: enabled);
   }
 }

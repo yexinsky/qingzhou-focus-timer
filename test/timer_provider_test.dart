@@ -1,10 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qingzhou_focus/core/services/session_feedback_service.dart';
 import 'package:qingzhou_focus/data/models/task.dart';
 import 'package:qingzhou_focus/data/repositories/settings_repository.dart';
 import 'package:qingzhou_focus/providers/timer_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/test_repositories.dart';
+
+/// 记录预排/撤销调用，用于验证到点提醒与计时状态联动。
+class _RecordingFeedback implements SessionFeedbackService {
+  int? scheduledEndAt;
+  bool? scheduledIsFocus;
+  int cancelCount = 0;
+
+  @override
+  Future<void> scheduleSessionEndReminder({
+    required int endAtMillis,
+    required bool isFocusSession,
+  }) async {
+    scheduledEndAt = endAtMillis;
+    scheduledIsFocus = isFocusSession;
+  }
+
+  @override
+  Future<void> cancelSessionEndReminder() async => cancelCount++;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -112,6 +135,64 @@ void main() {
     addTearDown(notifier.dispose);
     expect(notifier.state.currentSubject, '专业课');
     expect(notifier.state.currentTask, isNull);
+  });
+
+  test(
+    'startTimer schedules end reminder at exact end time; pause cancels it',
+    () async {
+      var clock = DateTime(2026, 9, 6, 10);
+      SharedPreferences.setMockInitialValues({'notification_enabled': true});
+      settingsRepository = SettingsRepository();
+      await settingsRepository.init();
+      final feedback = _RecordingFeedback();
+      final notifier = TimerNotifier(
+        TestTaskRepository(),
+        settingsRepository,
+        now: () => clock,
+        feedbackService: feedback,
+      );
+      addTearDown(notifier.dispose);
+
+      notifier.setDuration(25);
+      notifier.startTimer();
+      await Future<void>.delayed(Duration.zero);
+      expect(feedback.scheduledIsFocus, isTrue);
+      expect(
+        feedback.scheduledEndAt,
+        clock.add(const Duration(minutes: 25)).millisecondsSinceEpoch,
+      );
+
+      notifier.pauseTimer();
+      await Future<void>.delayed(Duration.zero);
+      expect(feedback.cancelCount, 1);
+
+      clock = clock.add(const Duration(minutes: 5));
+      notifier.resumeTimer();
+      await Future<void>.delayed(Duration.zero);
+      expect(feedback.cancelCount, 1);
+      // 恢复时从暂停时刻的剩余时长（25 分钟）重新起算结束点，暂停期间不倒扣
+      expect(
+        feedback.scheduledEndAt,
+        clock.add(const Duration(minutes: 25)).millisecondsSinceEpoch,
+      );
+    },
+  );
+
+  test('end reminder is skipped when notifications are disabled', () async {
+    SharedPreferences.setMockInitialValues({});
+    settingsRepository = SettingsRepository();
+    await settingsRepository.init();
+    final feedback = _RecordingFeedback();
+    final notifier = TimerNotifier(
+      TestTaskRepository(),
+      settingsRepository,
+      feedbackService: feedback,
+    );
+    addTearDown(notifier.dispose);
+    notifier.setDuration(25);
+    notifier.startTimer();
+    await Future<void>.delayed(Duration.zero);
+    expect(feedback.scheduledEndAt, isNull);
   });
 
   test(

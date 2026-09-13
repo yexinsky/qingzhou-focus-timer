@@ -20,6 +20,7 @@ void main() {
     expect(repository.autoWhiteNoise, isFalse);
     expect(repository.notificationEnabled, isFalse);
     expect(repository.vibrationEnabled, isTrue);
+    expect(repository.screenAlwaysOn, isTrue);
     expect(repository.isFirstLaunch, isTrue);
   });
 
@@ -32,6 +33,7 @@ void main() {
     await repository.setAutoWhiteNoise(true);
     await repository.setNotificationEnabled(true);
     await repository.setVibrationEnabled(false);
+    await repository.setScreenAlwaysOn(false);
     await repository.setFirstLaunchComplete();
     expect(repository.focusDuration, 45);
     expect(repository.breakDuration, 10);
@@ -41,6 +43,7 @@ void main() {
     expect(repository.autoWhiteNoise, isTrue);
     expect(repository.notificationEnabled, isTrue);
     expect(repository.vibrationEnabled, isFalse);
+    expect(repository.screenAlwaysOn, isFalse);
     expect(repository.isFirstLaunch, isFalse);
   });
 

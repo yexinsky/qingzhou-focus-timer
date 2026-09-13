@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
+import '../widgets/battery_guide_sheet.dart';
 import '../../providers/data_management_provider.dart';
 import '../../providers/session_feedback_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -100,6 +102,14 @@ class SettingsView extends ConsumerWidget {
                 primaryColor,
                 (_) => ref.read(settingsProvider.notifier).toggleStrictMode(),
               ),
+              _switch(
+                context,
+                '屏幕常亮',
+                '专注进行时保持亮屏，防止中途锁定打断沉浸',
+                settings.screenAlwaysOn,
+                primaryColor,
+                (v) => ref.read(settingsProvider.notifier).setScreenAlwaysOn(v),
+              ),
               SettingTile(
                 title: '白噪音',
                 subtitle: '音频素材与播放功能尚未提供',
@@ -139,6 +149,7 @@ class SettingsView extends ConsumerWidget {
                   child: Text(settings.notificationEnabled ? '系统设置' : '去开启'),
                 ),
               ),
+              if (Platform.isAndroid) const _BatteryOptimizationTile(),
               _switch(
                 context,
                 '触感反馈',
@@ -417,4 +428,56 @@ class SettingsView extends ConsumerWidget {
   void _showError(BuildContext context, String message) => ScaffoldMessenger.of(
     context,
   ).showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// 电池优化白名单状态查询与申请入口，附各机型后台设置路径指引。
+class _BatteryOptimizationTile extends ConsumerStatefulWidget {
+  const _BatteryOptimizationTile();
+
+  @override
+  ConsumerState<_BatteryOptimizationTile> createState() =>
+      _BatteryOptimizationTileState();
+}
+
+class _BatteryOptimizationTileState
+    extends ConsumerState<_BatteryOptimizationTile> {
+  bool? _ignoring;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    if (!mounted) return;
+    setState(() => _ignoring = status.isGranted);
+  }
+
+  Future<void> _request() async {
+    await Permission.ignoreBatteryOptimizations.request();
+    await _refresh();
+    if (!mounted) return;
+    if (_ignoring != true) await BatteryGuideSheet.show(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ignoring = _ignoring;
+    return SettingTile(
+      title: '电池优化白名单',
+      subtitle: ignoring == null
+          ? '正在检查电池优化状态…'
+          : ignoring
+          ? '已忽略电池优化，后台计时更稳定'
+          : '未忽略：后台计时可能被系统中断；点按查看各机型设置路径',
+      icon: ignoring == false ? Icons.warning_amber_rounded : null,
+      onTap: () => BatteryGuideSheet.show(context),
+      trailing: TextButton(
+        onPressed: ignoring == false ? _request : () => BatteryGuideSheet.show(context),
+        child: Text(ignoring == false ? '去开启' : '设置路径'),
+      ),
+    );
+  }
 }

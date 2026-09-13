@@ -9,6 +9,7 @@ class SettingsRepository {
   static const String _autoWhiteNoiseKey = 'auto_white_noise';
   static const String _notificationEnabledKey = 'notification_enabled';
   static const String _vibrationEnabledKey = 'vibration_enabled';
+  static const String _screenAlwaysOnKey = 'screen_always_on';
   static const String _firstLaunchKey = 'first_launch';
 
   late SharedPreferences _prefs;
@@ -49,6 +50,10 @@ class SettingsRepository {
   bool get vibrationEnabled => _prefs.getBool(_vibrationEnabledKey) ?? true;
   Future<void> setVibrationEnabled(bool enabled) =>
       _prefs.setBool(_vibrationEnabledKey, enabled);
+
+  bool get screenAlwaysOn => _prefs.getBool(_screenAlwaysOnKey) ?? true;
+  Future<void> setScreenAlwaysOn(bool enabled) =>
+      _prefs.setBool(_screenAlwaysOnKey, enabled);
 
   String? getString(String key) => _prefs.getString(key);
   Future<bool> setString(String key, String value) =>

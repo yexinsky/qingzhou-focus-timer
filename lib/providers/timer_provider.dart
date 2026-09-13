@@ -8,6 +8,7 @@ import '../data/models/focus_session.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import '../core/services/session_feedback_service.dart';
+import '../core/services/screen_keep_alive_service.dart';
 import 'session_feedback_provider.dart';
 import 'stats_provider.dart';
 
@@ -78,6 +79,9 @@ final taskRepositoryProvider = Provider<TaskRepository>(
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(),
 );
+final screenKeepAliveServiceProvider = Provider<ScreenKeepAliveService>(
+  (ref) => ScreenKeepAliveService(),
+);
 final timerProvider = StateNotifierProvider<TimerNotifier, TimerStateData>((
   ref,
 ) {
@@ -85,6 +89,7 @@ final timerProvider = StateNotifierProvider<TimerNotifier, TimerStateData>((
     ref.watch(taskRepositoryProvider),
     ref.watch(settingsRepositoryProvider),
     feedbackService: ref.watch(sessionFeedbackServiceProvider),
+    keepAlive: ref.watch(screenKeepAliveServiceProvider),
     onSessionRecorded: () {
       ref.read(statsRefreshProvider.notifier).state++;
     },
@@ -99,6 +104,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
   final DateTime Function() _now;
   final Uuid _uuid;
   final SessionFeedbackService? _feedbackService;
+  final ScreenKeepAliveService? _keepAlive;
   final void Function()? _onSessionRecorded;
   Timer? _timer;
   int? _startedAt;
@@ -111,10 +117,12 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     DateTime Function()? now,
     Uuid? uuid,
     SessionFeedbackService? feedbackService,
+    ScreenKeepAliveService? keepAlive,
     void Function()? onSessionRecorded,
   }) : _now = now ?? DateTime.now,
        _uuid = uuid ?? const Uuid(),
        _feedbackService = feedbackService,
+       _keepAlive = keepAlive,
        _onSessionRecorded = onSessionRecorded,
        super(
          TimerStateData(
@@ -157,12 +165,41 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       _endsAt = data['endsAt'] as int?;
       if (savedState == TimerState.running && _endsAt != null) {
         _syncWithClock();
-        if (state.state == TimerState.running) _startTicker();
+        if (state.state == TimerState.running) {
+          _startTicker();
+          unawaited(_scheduleEndReminder());
+        }
+        _updateKeepAlive();
       }
     } catch (_) {
       _clearSnapshot();
       _loadDefaultDuration();
     }
+  }
+
+  /// 预排到点提醒：倒计时进行中且开启通知时，由系统在结束时刻准点送达，
+  /// 应用退后台或进程被杀均不受影响。
+  Future<void> _scheduleEndReminder() async {
+    final endsAt = _endsAt;
+    if (endsAt == null || state.isFlexible) return;
+    if (!_settingsRepo.notificationEnabled) return;
+    await _feedbackService?.scheduleSessionEndReminder(
+      endAtMillis: endsAt,
+      isFocusSession: state.sessionType == SessionType.focus,
+    );
+  }
+
+  Future<void> _cancelEndReminder() async {
+    await _feedbackService?.cancelSessionEndReminder();
+  }
+
+  /// 依据运行状态与设置开关同步屏幕常亮。
+  void _updateKeepAlive() {
+    final shouldKeep =
+        state.state == TimerState.running &&
+        state.sessionType == SessionType.focus &&
+        _settingsRepo.screenAlwaysOn;
+    shouldKeep ? _keepAlive?.enable() : _keepAlive?.disable();
   }
 
   void _loadDefaultDuration() {
@@ -193,11 +230,16 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     if (lifecycleState == AppLifecycleState.resumed &&
         state.state == TimerState.running) {
       _syncWithClock();
-      if (state.state == TimerState.running) _startTicker();
+      if (state.state == TimerState.running) {
+        _startTicker();
+        unawaited(_scheduleEndReminder());
+      }
+      _updateKeepAlive();
     } else if (lifecycleState == AppLifecycleState.paused ||
         lifecycleState == AppLifecycleState.inactive ||
         lifecycleState == AppLifecycleState.detached) {
       _timer?.cancel();
+      _keepAlive?.disable();
       if (state.state == TimerState.running) _persistSnapshot();
     }
   }
@@ -235,6 +277,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     state = state.copyWith(state: TimerState.running);
     _persistSnapshot();
     _startTicker();
+    unawaited(_scheduleEndReminder());
+    _updateKeepAlive();
   }
 
   void _startTicker() {
@@ -271,6 +315,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _endsAt = null;
     state = state.copyWith(state: TimerState.paused);
     _persistSnapshot();
+    unawaited(_cancelEndReminder());
+    _updateKeepAlive();
   }
 
   void resumeTimer() {
@@ -303,6 +349,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       state: TimerState.idle,
     );
     _clearSnapshot();
+    unawaited(_cancelEndReminder());
+    _updateKeepAlive();
   }
 
   int _durationFor(SessionType type) => type == SessionType.focus
@@ -322,6 +370,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _timer?.cancel();
     state = state.copyWith(timeLeft: 0, state: TimerState.completed);
     await _persistSnapshot();
+    // 预排提醒已在结束时刻由系统送达（或已过期望时刻），这里撤销避免残留
+    await _cancelEndReminder();
     if (state.sessionType == SessionType.focus && _startedAt != null) {
       final session = FocusSession(
         id: _uuid.v4(),
@@ -347,6 +397,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _endsAt = null;
     _completing = false;
     await _persistSnapshot();
+    _updateKeepAlive();
   }
 
   String _dateKey(DateTime date) =>
@@ -440,6 +491,8 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _completing = false;
     state = state.copyWith(timeLeft: 0, totalTime: 0, state: TimerState.idle);
     await _clearSnapshot();
+    unawaited(_cancelEndReminder());
+    _updateKeepAlive();
     return true;
   }
 
