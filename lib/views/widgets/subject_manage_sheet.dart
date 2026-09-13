@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/subject_provider.dart';
 
 /// 学科管理底部弹窗：查看/删除现有学科，输入名称添加自定义学科。
@@ -10,10 +11,9 @@ class SubjectManageSheet extends ConsumerStatefulWidget {
   const SubjectManageSheet({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+    return showAdaptiveBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => const SubjectManageSheet(),
     );
   }
@@ -65,10 +65,12 @@ class _SubjectManageSheetState extends ConsumerState<SubjectManageSheet> {
         24,
         MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      // 横屏 + 键盘等矮高度场景下允许滚动，避免输入区被裁出屏幕
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Text('管理科目', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
@@ -142,7 +144,8 @@ class _SubjectManageSheetState extends ConsumerState<SubjectManageSheet> {
               ),
             ],
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

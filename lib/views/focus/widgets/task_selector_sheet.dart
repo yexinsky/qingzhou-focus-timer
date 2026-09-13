@@ -28,9 +28,15 @@ class TaskSelectorSheet extends ConsumerWidget {
         color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      // 横屏等矮高度场景下限制弹窗高度并支持滚动，避免底部入口被裁出屏幕
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
           Container(
             width: 40,
             height: 4,
@@ -152,7 +158,9 @@ class TaskSelectorSheet extends ConsumerWidget {
             ),
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

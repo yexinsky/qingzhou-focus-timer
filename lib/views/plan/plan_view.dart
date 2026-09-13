@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../data/models/task.dart';
@@ -26,10 +27,9 @@ class _PlanViewState extends ConsumerState<PlanView> {
 
   void _showTaskSheet({Task? task}) {
     final selected = ref.read(selectedPlanDateProvider);
-    showModalBottomSheet(
+    showAdaptiveBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => AddTaskSheet(
         task: task,
         initialDate: selected,

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/data_management_provider.dart';
 import '../../providers/session_feedback_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -245,10 +246,9 @@ class SettingsView extends ConsumerWidget {
     title: title,
     subtitle: subtitle,
     trailing: TextButton(
-      onPressed: () => showModalBottomSheet(
+      onPressed: () => showAdaptiveBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.transparent,
         builder: (_) => DurationPickerSheet(
           title: title,
           currentValue: value,

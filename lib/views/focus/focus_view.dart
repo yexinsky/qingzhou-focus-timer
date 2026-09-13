@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/time_formatter.dart';
+import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../data/models/task.dart';
@@ -40,10 +41,9 @@ class _FocusViewState extends ConsumerState<FocusView>
   }
 
   void _showTaskSelector() {
-    showModalBottomSheet(
+    showAdaptiveBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => TaskSelectorSheet(
         onTaskSelected: (task) {
           if (task != null) {
@@ -215,9 +215,12 @@ class _FocusViewState extends ConsumerState<FocusView>
   Widget _buildTimerSection(TimerStateData timerState, Color subjectColor) {
     return GestureDetector(
       onTap: timerState.state == TimerState.idle ? _showTaskSelector : null,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      // 平板横屏等矮高度场景下整体等比缩小，避免溢出
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           TimerRing(
             progress: timerState.progress,
             progressColor: subjectColor,
@@ -263,7 +266,8 @@ class _FocusViewState extends ConsumerState<FocusView>
           if (timerState.state == TimerState.running ||
               timerState.state == TimerState.paused)
             _buildControlButtons(timerState, subjectColor),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -46,7 +46,13 @@ class MainShell extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: child,
+      // 平板等宽屏设备上内容居中限宽，避免单列布局被拉伸；手机宽度本就小于 560dp，不受影响
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: child,
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
