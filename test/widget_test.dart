@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qingzhou_focus/app.dart';
 import 'package:qingzhou_focus/data/repositories/settings_repository.dart';
+import 'package:qingzhou_focus/data/repositories/subject_repository.dart';
 import 'package:qingzhou_focus/providers/timer_provider.dart';
+import 'package:qingzhou_focus/providers/subject_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/test_repositories.dart';
@@ -19,12 +21,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final settingsRepository = SettingsRepository();
     await settingsRepository.init();
+    final subjectRepository = SubjectRepository();
+    await subjectRepository.init();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           taskRepositoryProvider.overrideWithValue(TestTaskRepository()),
           settingsRepositoryProvider.overrideWithValue(settingsRepository),
+          subjectRepositoryProvider.overrideWithValue(subjectRepository),
         ],
         child: const QingzhouApp(),
       ),

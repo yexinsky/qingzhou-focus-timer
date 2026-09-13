@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
+import '../../../providers/subject_provider.dart';
+import '../../widgets/subject_manage_sheet.dart';
 
-class AddTaskSheet extends StatefulWidget {
+class AddTaskSheet extends ConsumerStatefulWidget {
   final Task? task;
   final DateTime initialDate;
   final ValueChanged<Task> onSave;
@@ -13,25 +16,26 @@ class AddTaskSheet extends StatefulWidget {
     required this.onSave,
   });
   @override
-  State<AddTaskSheet> createState() => _AddTaskSheetState();
+  ConsumerState<AddTaskSheet> createState() => _AddTaskSheetState();
 }
 
-class _AddTaskSheetState extends State<AddTaskSheet> {
+class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   late final TextEditingController _title;
   late final TextEditingController _note;
   late String _subject;
   late DateTime _date;
   late int _priority;
   late int _estimated;
-  final _subjects = const ['政治', '英语', '数学', '专业课', '其他'];
 
   @override
   void initState() {
     super.initState();
     final task = widget.task;
+    final subjects = ref.read(subjectsProvider).map((s) => s.name).toList();
     _title = TextEditingController(text: task?.title ?? '');
     _note = TextEditingController(text: task?.note ?? '');
-    _subject = task?.subject ?? '其他';
+    final fallback = subjects.isNotEmpty ? subjects.first : '其他';
+    _subject = task?.subject ?? (subjects.contains('其他') ? '其他' : fallback);
     _date = task == null ? widget.initialDate : DateTime.parse(task.dateKey);
     _priority = task?.priority ?? 1;
     _estimated = task?.estimatedPomodoros ?? 1;
@@ -117,19 +121,51 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('学科'),
+            Row(
+              children: [
+                const Text('学科'),
+                const Spacer(),
+                InkWell(
+                  onTap: () => SubjectManageSheet.show(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.tune,
+                          size: 16,
+                          color: AppColors.textSecondary.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '管理',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: _subjects
+              runSpacing: 8,
+              children: ref
+                  .watch(subjectsProvider)
                   .map(
                     (s) => ChoiceChip(
-                      label: Text(s),
-                      selected: _subject == s,
-                      onSelected: (_) => setState(() => _subject = s),
-                      selectedColor: AppColors.getSubjectColor(
-                        s,
-                      ).withValues(alpha: .3),
+                      label: Text(s.name),
+                      selected: _subject == s.name,
+                      onSelected: (_) => setState(() => _subject = s.name),
+                      selectedColor: s.color.withValues(alpha: .3),
                     ),
                   )
                   .toList(),

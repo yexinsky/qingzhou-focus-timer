@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
 import '../../../providers/task_provider.dart';
+import '../../../providers/subject_provider.dart';
+import '../../widgets/subject_manage_sheet.dart';
 
 class TaskSelectorSheet extends ConsumerWidget {
   final Function(Task?) onTaskSelected;
@@ -17,6 +19,7 @@ class TaskSelectorSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(tasksProvider);
+    final subjects = ref.watch(subjectsProvider);
     final incompleteTasks = tasks.where((t) => !t.completed).toList();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -54,44 +57,47 @@ class TaskSelectorSheet extends ConsumerWidget {
           if (onSubjectSelected != null) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '按科目专注',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+              child: Row(
+                children: [
+                  Text(
+                    '按科目专注',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
+                  const Spacer(),
+                  _ManageSubjectsButton(dark: isDark),
+                ],
+              ),
+            ),
+            if (subjects.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: subjects
+                      .map((subject) => _SubjectChip(
+                            subject: subject.name,
+                            color: subject.color,
+                            onTap: () {
+                              onSubjectSelected!(subject.name);
+                              Navigator.pop(context);
+                            },
+                          ))
+                      .toList(),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: AppColors.subjectNames
-                    .map((subject) => _SubjectChip(
-                          subject: subject,
-                          onTap: () {
-                            onSubjectSelected!(subject);
-                            Navigator.pop(context);
-                          },
-                        ))
-                    .toList(),
-              ),
-            ),
+            ],
             const SizedBox(height: 16),
           ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '今日待办',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            child: Text(
+              '今日待办',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -220,15 +226,54 @@ class _TaskItem extends StatelessWidget {
   }
 }
 
+class _ManageSubjectsButton extends ConsumerWidget {
+  final bool dark;
+
+  const _ManageSubjectsButton({required this.dark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      onTap: () => SubjectManageSheet.show(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune,
+              size: 16,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '管理',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SubjectChip extends StatelessWidget {
   final String subject;
+  final Color color;
   final VoidCallback onTap;
 
-  const _SubjectChip({required this.subject, required this.onTap});
+  const _SubjectChip({
+    required this.subject,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final subjectColor = AppColors.getSubjectColor(subject);
+    final subjectColor = color;
     return Material(
       color: Colors.transparent,
       child: InkWell(

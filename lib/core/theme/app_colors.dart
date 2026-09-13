@@ -24,8 +24,16 @@ class AppColors {
   static const Color subjectMajor = Color(0xFF8B7B8B); // 专业课 - 灰紫
   static const Color subjectOther = Color(0xFF7A7A7A); // 其他 - 暖灰
 
-  // 学科颜色 Map
-  static const Map<String, Color> subjectColorMap = {
+  // 预设科目名单（首次启动种子数据，用户可增删）
+  static const List<String> presetSubjectNames = [
+    '政治',
+    '英语',
+    '数学',
+    '专业课',
+    '其他',
+  ];
+
+  static const Map<String, Color> presetSubjectColorMap = {
     '政治': subjectPolitics,
     '英语': subjectEnglish,
     '数学': subjectMath,
@@ -33,14 +41,29 @@ class AppColors {
     '其他': subjectOther,
   };
 
-  // 固定科目名单（考研科目，可直接按科目专注）
-  static const List<String> subjectNames = [
-    '政治',
-    '英语',
-    '数学',
-    '专业课',
-    '其他',
+  // 自定义科目的扩展调色板（低饱和莫兰迪系），按序分配未被占用的颜色
+  static const List<Color> customSubjectPalette = [
+    Color(0xFF6B8E71), // 灰绿
+    Color(0xFF5C7A99), // 青蓝
+    Color(0xFF995C5C), // 砖红
+    Color(0xFF8A6F55), // 驼棕
+    Color(0xFF4F7D7D), // 黛青
+    Color(0xFFA0785C), // 杏褐
+    Color(0xFF77808B), // 蓝灰
+    Color(0xFF96819B), // 藕紫
   ];
+
+  // 运行期注册的学科颜色（含自定义与已删除科目的存档色，保证历史记录着色稳定）
+  static final Map<String, Color> _registeredSubjectColors = {};
+
+  static void registerSubjectColor(String name, Color color) =>
+      _registeredSubjectColors[name] = color;
+
+  // 学科颜色 Map（预设 + 注册的自定义/存档色）
+  static Map<String, Color> get subjectColorMap => {
+    ...presetSubjectColorMap,
+    ..._registeredSubjectColors,
+  };
 
   // 获取学科颜色
   static Color getSubjectColor(String subject) {

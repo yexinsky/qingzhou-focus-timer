@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/services/session_feedback_service.dart';
 import 'data/repositories/settings_repository.dart';
+import 'data/repositories/subject_repository.dart';
 import 'data/repositories/feynman_repository.dart';
 import 'providers/feynman_provider.dart';
+import 'providers/subject_provider.dart';
 import 'data/repositories/task_repository.dart';
 import 'providers/session_feedback_provider.dart';
 import 'providers/timer_provider.dart';
@@ -28,6 +30,8 @@ Future<void> main() async {
     await feynmanRepository.init();
     final settingsRepository = SettingsRepository();
     await settingsRepository.init();
+    final subjectRepository = SubjectRepository();
+    await subjectRepository.init();
     final feedbackService = SessionFeedbackService();
     await feedbackService.initialize();
 
@@ -36,6 +40,7 @@ Future<void> main() async {
         overrides: [
           taskRepositoryProvider.overrideWithValue(taskRepository),
           settingsRepositoryProvider.overrideWithValue(settingsRepository),
+          subjectRepositoryProvider.overrideWithValue(subjectRepository),
           feynmanRepositoryProvider.overrideWithValue(feynmanRepository),
           sessionFeedbackServiceProvider.overrideWithValue(feedbackService),
         ],
