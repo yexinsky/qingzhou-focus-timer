@@ -1,156 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../providers/university_provider.dart';
-import 'widgets/college_filter_bar.dart';
-import 'widgets/university_card.dart';
+import 'discipline_pane.dart';
+import 'ranking_pane.dart';
 
-class CollegeView extends ConsumerStatefulWidget {
+/// 院校 tab 顶部分段：排名 / 专业代码；切换 tab 后仍保留所选分段。
+final collegeSegmentProvider = StateProvider<String>((ref) => 'ranking');
+
+class CollegeView extends ConsumerWidget {
   const CollegeView({super.key});
 
   @override
-  ConsumerState<CollegeView> createState() => _CollegeViewState();
-}
-
-class _CollegeViewState extends ConsumerState<CollegeView> {
-  late final TextEditingController _searchController;
-
-  @override
-  void initState() {
-    super.initState();
-    // 筛选状态常驻 Provider，重新进入 tab 时恢复搜索词
-    _searchController = TextEditingController(
-      text: ref.read(universityFilterProvider).query,
-    );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  /// 清空搜索框与全部筛选条件；两处需同步，避免列表与搜索框状态不一致。
-  void _clearFilters() {
-    _searchController.clear();
-    ref.read(universityFilterProvider.notifier).reset();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final rankingAsync = ref.watch(universityRankingProvider);
-    final filter = ref.watch(universityFilterProvider);
-    final universities = ref.watch(filteredUniversitiesProvider);
-    final provinces = ref.watch(universityProvincesProvider);
-    final categories = ref.watch(universityCategoriesProvider);
-    final ranking = rankingAsync.valueOrNull;
-    final hasActiveFilter = !filter.isDefault;
-
+  Widget build(BuildContext context, WidgetRef ref) {
+    final segment = ref.watch(collegeSegmentProvider);
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 42, 24, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '院校排名',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w300),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      ranking == null
-                          ? '数据加载中…'
-                          : hasActiveFilter
-                          ? '已匹配 ${universities.length} / ${ranking.universities.length} 所'
-                          : '${ranking.source} · ${ranking.year} · 共 ${ranking.universities.length} 所',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    CollegeFilterBar(
-                      filter: filter,
-                      searchController: _searchController,
-                      provinces: provinces,
-                      categories: categories,
-                      onQueryChanged: (value) => ref
-                          .read(universityFilterProvider.notifier)
-                          .setQuery(value),
-                      onTagChanged: (value) => ref
-                          .read(universityFilterProvider.notifier)
-                          .setTag(value),
-                      onProvinceChanged: (value) => ref
-                          .read(universityFilterProvider.notifier)
-                          .setProvince(value),
-                      onCategoryChanged: (value) => ref
-                          .read(universityFilterProvider.notifier)
-                          .setCategory(value),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            rankingAsync.when(
-              data: (_) => universities.isEmpty
-                  ? _emptySliver(
-                      '未找到匹配的院校',
-                      onClear: hasActiveFilter ? _clearFilters : null,
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: UniversityCard(
-                              university: universities[index],
-                            ),
-                          ),
-                          childCount: universities.length,
-                        ),
-                      ),
-                    ),
-              loading: () => const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => _emptySliver('榜单数据加载失败'),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 110)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  SliverFillRemaining _emptySliver(String message, {VoidCallback? onClear}) {
-    return SliverFillRemaining(
-      hasScrollBody: false,
-      child: Center(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.school_outlined,
-              size: 60,
-              color: AppColors.textSecondary.withValues(alpha: .3),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 42, 24, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '院校',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ranking', label: Text('排名')),
+                      ButtonSegment(value: 'codes', label: Text('专业代码')),
+                    ],
+                    selected: {segment},
+                    onSelectionChanged: (selection) =>
+                        ref.read(collegeSegmentProvider.notifier).state =
+                            selection.first,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: const TextStyle(color: AppColors.textSecondary),
+            Expanded(
+              child: segment == 'codes'
+                  ? const DisciplinePane()
+                  : const RankingPane(),
             ),
-            if (onClear != null) ...[
-              const SizedBox(height: 8),
-              TextButton(onPressed: onClear, child: const Text('清除筛选条件')),
-            ],
           ],
         ),
       ),

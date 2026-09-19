@@ -70,3 +70,4 @@ flutter:
 
   assets:
     - assets/data/university_ranking.json
+    - assets/data/discipline_catalog.json
