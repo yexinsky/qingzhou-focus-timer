@@ -57,6 +57,8 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "design/logo/icon_adaptive_bg.png"
   adaptive_icon_foreground: "design/logo/icon_adaptive_fg.png"
+  # 包默认 16% 内缩会让内容再缩一圈，构图时已按安全区设计，这里取消内缩
+  adaptive_icon_foreground_inset: 0
   web:
     generate: true
     image_path: "design/logo/icon_full.png"

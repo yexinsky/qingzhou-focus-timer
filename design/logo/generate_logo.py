@@ -217,17 +217,19 @@ def render_launcher():
     draw_waves(bg, cw["wave"], [w[5] for w in WAVES])
     bg.convert("RGB").save(os.path.join(OUT, "icon_adaptive_bg.png"))
 
+    # 前景层：透明底；已取消 flutter_launcher_icons 的 16% 内缩，
+    # 主体按最终显示比例设计，收进可见遮罩圈（中心圆 r≈341）
     fg = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    draw_chars(fg, FONT_XK, CHARS, 218, cw["text"], 442, 30, stroke_w=5)
-    draw_pinyin(fg, cw["pinyin"], size=26, y=576, track=12)
+    draw_chars(fg, FONT_XK, CHARS, 255, cw["text"], 452, 32)
+    draw_pinyin(fg, cw["pinyin"], size=28, y=618, track=10)
     draw_seal(
         fg,
         _hex(cw["seal"]) + (238,),
         _hex(cw["seal_text"]) + (255,),
-        size=94,
-        center=(676, 626),
-        char_size=34,
-        radius=14,
+        size=108,
+        center=(712, 650),
+        char_size=38,
+        radius=16,
     )
     fg.save(os.path.join(OUT, "icon_adaptive_fg.png"))
 
