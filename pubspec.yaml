@@ -49,3 +49,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/data/university_ranking.json

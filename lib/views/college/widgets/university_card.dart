@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../data/models/university.dart';
+
+class UniversityCard extends StatelessWidget {
+  const UniversityCard({super.key, required this.university});
+
+  final University university;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = dark ? AppColors.primaryDark : AppColors.primaryLight;
+    final isTop3 =
+        university.rank == '1' ||
+        university.rank == '2' ||
+        university.rank == '3';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: dark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              university.rank,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w300,
+                color: isTop3 ? accent : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        university.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      university.score ?? '—',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: university.score == null
+                            ? (dark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary)
+                            : accent,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (university.province.isNotEmpty ||
+                        university.category.isNotEmpty)
+                      Text(
+                        [
+                          if (university.province.isNotEmpty)
+                            university.province,
+                          if (university.category.isNotEmpty)
+                            university.category,
+                        ].join(' · '),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: dark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    for (final tag in university.tags) _tagBadge(tag, accent),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tagBadge(String tag, Color accent) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(tag, style: TextStyle(fontSize: 10, color: accent)),
+    );
+  }
+}
