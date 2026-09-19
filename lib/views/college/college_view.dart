@@ -31,6 +31,12 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
     super.dispose();
   }
 
+  /// 清空搜索框与全部筛选条件；两处需同步，避免列表与搜索框状态不一致。
+  void _clearFilters() {
+    _searchController.clear();
+    ref.read(universityFilterProvider.notifier).reset();
+  }
+
   @override
   Widget build(BuildContext context) {
     final rankingAsync = ref.watch(universityRankingProvider);
@@ -39,6 +45,7 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
     final provinces = ref.watch(universityProvincesProvider);
     final categories = ref.watch(universityCategoriesProvider);
     final ranking = rankingAsync.valueOrNull;
+    final hasActiveFilter = !filter.isDefault;
 
     return Scaffold(
       body: SafeArea(
@@ -59,6 +66,8 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
                     Text(
                       ranking == null
                           ? '数据加载中…'
+                          : hasActiveFilter
+                          ? '已匹配 ${universities.length} / ${ranking.universities.length} 所'
                           : '${ranking.source} · ${ranking.year} · 共 ${ranking.universities.length} 所',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
@@ -68,6 +77,7 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
                     const SizedBox(height: 16),
                     CollegeFilterBar(
                       filter: filter,
+                      searchController: _searchController,
                       provinces: provinces,
                       categories: categories,
                       onQueryChanged: (value) => ref
@@ -89,7 +99,10 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
             ),
             rankingAsync.when(
               data: (_) => universities.isEmpty
-                  ? _emptySliver('未找到匹配的院校')
+                  ? _emptySliver(
+                      '未找到匹配的院校',
+                      onClear: hasActiveFilter ? _clearFilters : null,
+                    )
                   : SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       sliver: SliverList(
@@ -117,7 +130,7 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
     );
   }
 
-  SliverFillRemaining _emptySliver(String message) {
+  SliverFillRemaining _emptySliver(String message, {VoidCallback? onClear}) {
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -134,6 +147,10 @@ class _CollegeViewState extends ConsumerState<CollegeView> {
               message,
               style: const TextStyle(color: AppColors.textSecondary),
             ),
+            if (onClear != null) ...[
+              const SizedBox(height: 8),
+              TextButton(onPressed: onClear, child: const Text('清除筛选条件')),
+            ],
           ],
         ),
       ),

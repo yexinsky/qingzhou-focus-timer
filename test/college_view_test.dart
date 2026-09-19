@@ -67,10 +67,20 @@ void main() {
 
     expect(find.text('清华大学'), findsOneWidget);
     expect(find.text('北京大学'), findsNothing);
+    expect(find.textContaining('已匹配 1 / 4 所'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '不存在的学校');
     await tester.pump();
     expect(find.text('未找到匹配的院校'), findsOneWidget);
+
+    // 空态一键清除筛选，恢复完整榜单
+    await tester.tap(find.text('清除筛选条件'));
+    await tester.pump();
+
+    expect(find.text('清华大学'), findsOneWidget);
+    expect(find.text('北京大学'), findsOneWidget);
+    expect(find.textContaining('共 4 所'), findsOneWidget);
+    expect(find.text('未找到匹配的院校'), findsNothing);
   });
 
   testWidgets('标签筛选生效', (tester) async {
@@ -83,5 +93,7 @@ void main() {
     // 仅 211 标签与无标签的院校被过滤掉
     expect(find.text('南京理工大学'), findsNothing);
     expect(find.text('郑州师范学院'), findsNothing);
+    // 副标题即时反馈命中数量
+    expect(find.textContaining('已匹配 2 / 4 所'), findsOneWidget);
   });
 }

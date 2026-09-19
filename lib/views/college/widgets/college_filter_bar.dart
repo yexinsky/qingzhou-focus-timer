@@ -9,6 +9,7 @@ class CollegeFilterBar extends StatelessWidget {
   const CollegeFilterBar({
     super.key,
     required this.filter,
+    required this.searchController,
     required this.provinces,
     required this.categories,
     required this.onQueryChanged,
@@ -18,6 +19,7 @@ class CollegeFilterBar extends StatelessWidget {
   });
 
   final UniversityFilter filter;
+  final TextEditingController searchController;
   final List<String> provinces;
   final List<String> categories;
   final ValueChanged<String> onQueryChanged;
@@ -32,6 +34,7 @@ class CollegeFilterBar extends StatelessWidget {
     return Column(
       children: [
         TextField(
+          controller: searchController,
           onChanged: onQueryChanged,
           decoration: InputDecoration(
             hintText: '搜索院校名称',
