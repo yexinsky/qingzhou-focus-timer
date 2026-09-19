@@ -12,12 +12,12 @@ import '../views/feynman/feynman_session_view.dart';
 import '../views/feynman/feynman_review_view.dart';
 import '../views/feynman/feynman_heatmap_view.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/focus',
   routes: [
     ShellRoute(

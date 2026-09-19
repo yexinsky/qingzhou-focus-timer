@@ -31,6 +31,10 @@ dependencies:
 
   # 图标
 
+  # 应用内更新检查
+  http: ^1.2.0
+  url_launcher: ^6.3.0
+
   # 工具
   uuid: ^4.5.1
   intl: ^0.20.2
