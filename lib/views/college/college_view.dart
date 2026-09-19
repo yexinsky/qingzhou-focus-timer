@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/college_preference_provider.dart';
 import 'discipline_pane.dart';
+import 'goal_pane.dart';
 import 'ranking_pane.dart';
-
-/// 院校 tab 顶部分段：排名 / 专业代码；切换 tab 后仍保留所选分段。
-final collegeSegmentProvider = StateProvider<String>((ref) => 'ranking');
 
 class CollegeView extends ConsumerWidget {
   const CollegeView({super.key});
@@ -34,6 +33,7 @@ class CollegeView extends ConsumerWidget {
                     segments: const [
                       ButtonSegment(value: 'ranking', label: Text('排名')),
                       ButtonSegment(value: 'codes', label: Text('专业代码')),
+                      ButtonSegment(value: 'goals', label: Text('目标')),
                     ],
                     selected: {segment},
                     onSelectionChanged: (selection) =>
@@ -44,9 +44,11 @@ class CollegeView extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: segment == 'codes'
-                  ? const DisciplinePane()
-                  : const RankingPane(),
+              child: switch (segment) {
+                'codes' => const DisciplinePane(),
+                'goals' => const GoalPane(),
+                _ => const RankingPane(),
+              },
             ),
           ],
         ),

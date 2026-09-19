@@ -5,9 +5,16 @@ import '../../../data/models/university.dart';
 import 'college_tag_colors.dart';
 
 class UniversityCard extends StatelessWidget {
-  const UniversityCard({super.key, required this.university});
+  const UniversityCard({
+    super.key,
+    required this.university,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+  });
 
   final University university;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +64,23 @@ class UniversityCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onToggleFavorite,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          isFavorite
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          size: 20,
+                          color: isFavorite
+                              ? const Color(0xFFD9A441)
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                     Text(
                       university.score ?? '—',
                       style: TextStyle(

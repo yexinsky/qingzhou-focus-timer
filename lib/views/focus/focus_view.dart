@@ -6,6 +6,9 @@ import '../../core/utils/time_formatter.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/college_preference_provider.dart';
+import '../../providers/stats_provider.dart';
+import '../../data/models/college_preference.dart';
 import '../../data/models/task.dart';
 import 'widgets/timer_ring.dart';
 import 'widgets/task_selector_sheet.dart';
@@ -81,6 +84,9 @@ class _FocusViewState extends ConsumerState<FocusView>
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
     final settings = ref.watch(settingsProvider);
+    final preferences = ref.watch(collegePreferenceProvider);
+    final countdown = ref.watch(examCountdownProvider);
+    final todayMinutes = ref.watch(statsProvider).getTodayStats().totalMinutes;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final focusTargetColor =
         timerState.currentTask?.subject ?? timerState.currentSubject;
@@ -105,6 +111,7 @@ class _FocusViewState extends ConsumerState<FocusView>
               ),
             ),
             const SizedBox(height: 20),
+            _buildGoalBanner(preferences, countdown, todayMinutes),
             if (timerState.sessionType == SessionType.focus &&
                 timerState.state == TimerState.idle) ...[
               _buildModeSelector(timerState),
@@ -136,6 +143,62 @@ class _FocusViewState extends ConsumerState<FocusView>
               _buildCompletionActions(timerState, subjectColor),
             const SizedBox(height: 100),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 目标院校轻胶囊：设置了目标院校后常驻显示，点击进入院校"目标"分段。
+  /// 仅会话落库后"今日分钟"才会增长（与会话统计刷新机制一致）。
+  Widget _buildGoalBanner(
+    CollegePreferences preferences,
+    ExamCountdown? countdown,
+    int todayMinutes,
+  ) {
+    final target = preferences.target;
+    if (target == null || countdown == null) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    final detail = countdown.daysRemaining < 0
+        ? '考研初试已开始'
+        : countdown.daysRemaining == 0
+        ? '考研初试就在今天'
+        : '距考研 ${countdown.daysRemaining} 天';
+    final timePart = todayMinutes > 0
+        ? ' · 今日 $todayMinutes 分钟'
+        : ' · 今日还没开始专注';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Center(
+        child: GestureDetector(
+          onTap: () {
+            ref.read(collegeSegmentProvider.notifier).state = 'goals';
+            context.go('/college');
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.flag_outlined, size: 14, color: accent),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    '目标 $target · $detail$timePart',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

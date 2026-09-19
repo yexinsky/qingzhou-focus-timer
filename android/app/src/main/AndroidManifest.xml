@@ -10,6 +10,10 @@
         android:label="轻舟"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- 模拟器上 Impeller(GLES) 会出现整窗黑帧且不恢复，暂时回退 Skia 渲染 -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

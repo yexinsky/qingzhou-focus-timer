@@ -28,7 +28,7 @@ class CollegeFilterBar extends StatelessWidget {
   final ValueChanged<String?> onProvinceChanged;
   final ValueChanged<String?> onCategoryChanged;
 
-  static const List<String> _tagOptions = ['双一流', '985', '211'];
+  static const List<String> _tagOptions = ['双一流', '985', '211', '意向'];
 
   @override
   Widget build(BuildContext context) {

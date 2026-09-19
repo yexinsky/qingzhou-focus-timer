@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/university.dart';
 import '../data/repositories/university_repository.dart';
+import 'college_preference_provider.dart';
 
 final universityRepositoryProvider = Provider<UniversityRepository>(
   (ref) => UniversityRepository(),
@@ -117,8 +118,27 @@ List<University> filterUniversities(
 final filteredUniversitiesProvider = Provider<List<University>>((ref) {
   final ranking = ref.watch(universityRankingProvider).valueOrNull;
   final filter = ref.watch(universityFilterProvider);
+  final favorites = ref.watch(collegePreferenceProvider).favorites;
   if (ranking == null) return const [];
-  return filterUniversities(ranking.universities, filter);
+  var universities = ranking.universities;
+  if (filter.tag == '意向') {
+    // 意向筛选：没有院校带"意向"标签，须绕过 tag 检查改为与收藏集取交集
+    universities = filterUniversities(
+      universities,
+      UniversityFilter(
+        query: filter.query,
+        province: filter.province,
+        category: filter.category,
+      ),
+    );
+    final favoriteSet = favorites.toSet();
+    universities = universities
+        .where((university) => favoriteSet.contains(university.name))
+        .toList();
+  } else {
+    universities = filterUniversities(universities, filter);
+  }
+  return universities;
 });
 
 /// 榜单中出现的省份，按排名首次出现顺序。

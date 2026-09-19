@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../providers/college_preference_provider.dart';
 import '../../providers/university_provider.dart';
 import 'widgets/college_filter_bar.dart';
 import 'widgets/university_card.dart';
@@ -43,6 +44,7 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
     final rankingAsync = ref.watch(universityRankingProvider);
     final filter = ref.watch(universityFilterProvider);
     final universities = ref.watch(filteredUniversitiesProvider);
+    final favorites = ref.watch(collegePreferenceProvider).favorites;
     final provinces = ref.watch(universityProvincesProvider);
     final categories = ref.watch(universityCategoriesProvider);
     final ranking = rankingAsync.valueOrNull;
@@ -101,7 +103,15 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: UniversityCard(university: universities[index]),
+                        child: UniversityCard(
+                          university: universities[index],
+                          isFavorite: favorites.contains(
+                            universities[index].name,
+                          ),
+                          onToggleFavorite: () => ref
+                              .read(collegePreferenceProvider.notifier)
+                              .toggleFavorite(universities[index].name),
+                        ),
                       ),
                       childCount: universities.length,
                     ),
