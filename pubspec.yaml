@@ -47,6 +47,22 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+  # 桌面图标生成：dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  image_path: "design/logo/icon_full.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "design/logo/icon_adaptive_bg.png"
+  adaptive_icon_foreground: "design/logo/icon_adaptive_fg.png"
+  web:
+    generate: true
+    image_path: "design/logo/icon_full.png"
+    background_color: "#F8F4EB"
+    theme_color: "#426464"
+
 flutter:
   uses-material-design: true
 

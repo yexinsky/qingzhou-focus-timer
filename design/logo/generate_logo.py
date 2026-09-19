@@ -105,14 +105,15 @@ def draw_waves(img, rgb, alphas):
     img.alpha_composite(layer)
 
 
-def draw_chars(img, font_path, text, size, color, cy, gap, tracking=0):
+def draw_chars(img, font_path, text, size, color, cy, gap, tracking=0, stroke_w=None):
     """按紧致包围盒逐字水平居中绘制，同色描边加粗。"""
+    stroke_w = STROKE_W if stroke_w is None else stroke_w
     font = ImageFont.truetype(font_path, size)
     d = ImageDraw.Draw(img)
     widths = []
     boxes = []
     for ch in text:
-        bb = d.textbbox((0, 0), ch, font=font, stroke_width=STROKE_W)
+        bb = d.textbbox((0, 0), ch, font=font, stroke_width=stroke_w)
         boxes.append(bb)
         widths.append(bb[2] - bb[0])
     total = sum(widths) + gap * (len(text) - 1) + tracking * (len(text) - 1)
@@ -123,51 +124,48 @@ def draw_chars(img, font_path, text, size, color, cy, gap, tracking=0):
             ch,
             font=font,
             fill=color,
-            stroke_width=STROKE_W,
+            stroke_width=stroke_w,
             stroke_fill=color,
         )
         x += w + gap + tracking
     return total
 
 
-def draw_pinyin(img, color):
-    font = ImageFont.truetype(FONT_EN, PINYIN_SIZE)
+def draw_pinyin(img, color, size=PINYIN_SIZE, y=PINYIN_Y, track=PINYIN_TRACK):
+    font = ImageFont.truetype(FONT_EN, size)
     d = ImageDraw.Draw(img)
     widths = []
     for ch in PINYIN:
         bb = d.textbbox((0, 0), ch, font=font)
         widths.append(bb[2] - bb[0])
-    total = sum(widths) + PINYIN_TRACK * (len(PINYIN) - 1)
+    total = sum(widths) + track * (len(PINYIN) - 1)
     x = (S - total) / 2
     for ch, w in zip(PINYIN, widths):
-        d.text((x, PINYIN_Y), ch, font=font, fill=color, anchor="lm")
-        x += w + PINYIN_TRACK
+        d.text((x, y), ch, font=font, fill=color, anchor="lm")
+        x += w + track
 
 
-def draw_seal(img, fill, text_color):
+def draw_seal(img, fill, text_color, size=SEAL_SIZE, center=SEAL_CENTER,
+              char_size=44, rot=SEAL_ROT, radius=18):
     """右下「轻舟」小印，砖红圆角方章，轻微旋转。"""
     pad = 10
-    tile = Image.new("RGBA", (SEAL_SIZE + pad * 2, SEAL_SIZE + pad * 2), (0, 0, 0, 0))
+    tile = Image.new("RGBA", (size + pad * 2, size + pad * 2), (0, 0, 0, 0))
     d = ImageDraw.Draw(tile)
-    d.rounded_rectangle(
-        (pad, pad, pad + SEAL_SIZE, pad + SEAL_SIZE),
-        radius=18,
-        fill=fill,
-    )
-    font = ImageFont.truetype(FONT_KAI, 44)
-    cx = pad + SEAL_SIZE / 2
+    d.rounded_rectangle((pad, pad, pad + size, pad + size), radius=radius, fill=fill)
+    font = ImageFont.truetype(FONT_KAI, char_size)
+    cx = pad + size / 2
     for i, ch in enumerate(SEAL_CHARS):
         d.text(
-            (cx, pad + SEAL_SIZE * (0.30 + 0.40 * i)),
+            (cx, pad + size * (0.30 + 0.40 * i)),
             ch,
             font=font,
             fill=text_color,
             anchor="mm",
         )
-    tile = tile.rotate(SEAL_ROT, resample=Image.BICUBIC, expand=True)
+    tile = tile.rotate(rot, resample=Image.BICUBIC, expand=True)
     img.alpha_composite(
         tile,
-        (int(SEAL_CENTER[0] - tile.width / 2), int(SEAL_CENTER[1] - tile.height / 2)),
+        (int(center[0] - tile.width / 2), int(center[1] - tile.height / 2)),
     )
 
 
@@ -199,6 +197,43 @@ def render(name, bleed=False):
         out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
         out.paste(img, (0, 0), mask)
         out.save(os.path.join(OUT, f"logo_{name}.png"))
+
+
+def render_launcher():
+    """纸色版启动图标：自适应图标双层（背景全出血/前景进安全区）+ 全图。
+
+    安全区：自适应图标画布 108dp，遮罩后可见 72dp，保证不裁切的圆约 66dp，
+    对应 1024 画布上以中心为圆心、直径约 624 的圆；前景主体（上岸/拼音/印章）
+    全部收在该圆内，波纹属于背景层，交给遮罩自然裁切。
+    """
+    cw = COLORWAYS["cream"]
+
+    bg = gradient(*cw["grad"]).convert("RGBA")
+    glow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse((152, -260, S - 152, 300), fill=(255, 255, 255, 16))
+    glow = glow.filter(ImageFilter.GaussianBlur(60))
+    bg.alpha_composite(glow)
+    draw_waves(bg, cw["wave"], [w[5] for w in WAVES])
+    bg.convert("RGB").save(os.path.join(OUT, "icon_adaptive_bg.png"))
+
+    fg = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    draw_chars(fg, FONT_XK, CHARS, 218, cw["text"], 442, 30, stroke_w=5)
+    draw_pinyin(fg, cw["pinyin"], size=26, y=576, track=12)
+    draw_seal(
+        fg,
+        _hex(cw["seal"]) + (238,),
+        _hex(cw["seal_text"]) + (255,),
+        size=94,
+        center=(676, 626),
+        char_size=34,
+        radius=14,
+    )
+    fg.save(os.path.join(OUT, "icon_adaptive_fg.png"))
+
+    full = bg.copy()
+    full.alpha_composite(fg)
+    full.convert("RGB").save(os.path.join(OUT, "icon_full.png"))
 
 
 def preview():
@@ -334,6 +369,7 @@ if __name__ == "__main__":
     for name in COLORWAYS:
         render(name)
     render("primary", bleed=True)
+    render_launcher()
     preview()
     svg()
     print("generated:", sorted(os.listdir(OUT)))
