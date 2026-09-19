@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/university.dart';
+import 'college_tag_colors.dart';
 
 class UniversityCard extends StatelessWidget {
   const UniversityCard({super.key, required this.university});
@@ -93,7 +94,7 @@ class UniversityCard extends StatelessWidget {
                               : AppColors.textSecondary,
                         ),
                       ),
-                    for (final tag in university.tags) _tagBadge(tag, accent),
+                    for (final tag in university.tags) _tagBadge(tag, dark),
                   ],
                 ),
               ],
@@ -104,14 +105,22 @@ class UniversityCard extends StatelessWidget {
     );
   }
 
-  Widget _tagBadge(String tag, Color accent) {
+  Widget _tagBadge(String tag, bool dark) {
+    final color = collegeTagColor(tag, dark: dark);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.1),
+        color: color.withValues(alpha: dark ? 0.16 : 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(tag, style: TextStyle(fontSize: 10, color: accent)),
+      child: Text(
+        tag,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: color,
+        ),
+      ),
     );
   }
 }

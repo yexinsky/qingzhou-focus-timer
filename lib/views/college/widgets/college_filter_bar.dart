@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../../providers/university_provider.dart';
+import 'college_tag_colors.dart';
 
 /// 排名筛选栏：搜索框 + 标签胶囊（全部/双一流/985/211）+ 省份、类型选择按钮。
 class CollegeFilterBar extends StatelessWidget {
@@ -93,7 +94,17 @@ class CollegeFilterBar extends StatelessWidget {
   }
 
   Widget _tagChip(BuildContext context, String? value, String label) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final selected = filter.tag == value;
+    // 选中态用实色填充+反白文字，未选中态描边+正文色，避免看起来像禁用
+    final fillColor = selected
+        ? value == null
+              ? (dark ? AppColors.primaryDark : AppColors.primaryLight)
+              : collegeTagColor(value, dark: dark)
+        : null;
+    final textColor = selected
+        ? (dark ? AppColors.surfaceDark : Colors.white)
+        : (dark ? AppColors.textPrimaryDark : AppColors.textPrimary);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -103,19 +114,23 @@ class CollegeFilterBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: selected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                : Theme.of(context).brightness == Brightness.dark
-                ? AppColors.cardDark
-                : AppColors.cardLight,
+                ? fillColor
+                : (dark ? AppColors.cardDark : AppColors.cardLight),
             borderRadius: BorderRadius.circular(10),
+            border: selected
+                ? null
+                : Border.all(
+                    color: dark
+                        ? AppColors.dividerDark
+                        : AppColors.dividerLight,
+                  ),
           ),
           child: Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: selected
-                  ? Theme.of(context).colorScheme.primary
-                  : AppColors.textSecondary,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: textColor,
             ),
           ),
         ),
@@ -131,36 +146,33 @@ class CollegeFilterBar extends StatelessWidget {
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final active = value != null;
+    final textColor = active
+        ? (dark ? AppColors.surfaceDark : Colors.white)
+        : (dark ? AppColors.textPrimaryDark : AppColors.textPrimary);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: dark ? AppColors.cardDark : AppColors.cardLight,
+          color: active
+              ? (dark ? AppColors.primaryDark : AppColors.primaryLight)
+              : (dark ? AppColors.cardDark : AppColors.cardLight),
           borderRadius: BorderRadius.circular(10),
+          border: active
+              ? null
+              : Border.all(
+                  color: dark ? AppColors.dividerDark : AppColors.dividerLight,
+                ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value ?? label,
-              style: TextStyle(
-                fontSize: 12,
-                color: active
-                    ? Theme.of(context).colorScheme.primary
-                    : dark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 12, color: textColor),
             ),
             const SizedBox(width: 2),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 16,
-              color: active
-                  ? Theme.of(context).colorScheme.primary
-                  : AppColors.textSecondary,
-            ),
+            Icon(Icons.keyboard_arrow_down, size: 16, color: textColor),
           ],
         ),
       ),
