@@ -4,6 +4,7 @@ import '../views/main_shell.dart';
 import '../views/focus/focus_view.dart';
 import '../views/plan/plan_view.dart';
 import '../views/stats/stats_view.dart';
+import '../views/college/college_view.dart';
 import '../views/settings/settings_view.dart';
 import '../views/history/session_history_view.dart';
 import '../views/feynman/feynman_setup_view.dart';
@@ -11,12 +12,12 @@ import '../views/feynman/feynman_session_view.dart';
 import '../views/feynman/feynman_review_view.dart';
 import '../views/feynman/feynman_heatmap_view.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/focus',
   routes: [
     ShellRoute(
@@ -37,6 +38,11 @@ final appRouter = GoRouter(
           path: '/stats',
           pageBuilder: (context, state) =>
               _buildPage(context, state, const StatsView()),
+        ),
+        GoRoute(
+          path: '/college',
+          pageBuilder: (context, state) =>
+              _buildPage(context, state, const CollegeView()),
         ),
         GoRoute(
           path: '/settings',

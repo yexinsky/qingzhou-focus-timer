@@ -9,11 +9,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
+import '../../core/widgets/update_dialog.dart';
 import '../widgets/battery_guide_sheet.dart';
 import '../../providers/data_management_provider.dart';
 import '../../providers/session_feedback_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/timer_provider.dart';
+import '../../providers/update_provider.dart';
 import 'widgets/setting_tile.dart';
 
 class SettingsView extends ConsumerWidget {
@@ -23,6 +25,9 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final busy = ref.watch(dataManagementProvider);
+    final updateChecking = ref.watch(
+      updateProvider.select((state) => state.checking),
+    );
     final primaryColor = Theme.of(context).brightness == Brightness.dark
         ? AppColors.primaryDark
         : AppColors.primaryLight;
@@ -190,6 +195,24 @@ class SettingsView extends ConsumerWidget {
                   color: AppColors.error,
                 ),
                 onTap: busy ? null : () => _clearAllData(context, ref),
+              ),
+            ]),
+            const SizedBox(height: 24),
+            _section(context, '关于', Icons.info_outline, [
+              SettingTile(
+                title: '检查更新',
+                subtitle: '每次启动会自动检查，也可在此手动检查',
+                showDivider: false,
+                trailing: updateChecking
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: updateChecking
+                    ? null
+                    : () => checkForUpdateManually(context, ref),
               ),
             ]),
             const SizedBox(height: 48),

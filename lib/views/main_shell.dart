@@ -16,8 +16,10 @@ class MainShell extends StatelessWidget {
         return 1;
       case '/stats':
         return 2;
-      case '/settings':
+      case '/college':
         return 3;
+      case '/settings':
+        return 4;
       default:
         return 0;
     }
@@ -35,6 +37,9 @@ class MainShell extends StatelessWidget {
         context.go('/stats');
         break;
       case 3:
+        context.go('/college');
+        break;
+      case 4:
         context.go('/settings');
         break;
     }
@@ -91,11 +96,18 @@ class MainShell extends StatelessWidget {
                   onTap: () => _onTap(context, 2),
                 ),
                 _NavItem(
+                  icon: Icons.school_outlined,
+                  activeIcon: Icons.school,
+                  label: '院校',
+                  isActive: currentIndex == 3,
+                  onTap: () => _onTap(context, 3),
+                ),
+                _NavItem(
                   icon: Icons.settings_outlined,
                   activeIcon: Icons.settings,
                   label: '设置',
-                  isActive: currentIndex == 3,
-                  onTap: () => _onTap(context, 3),
+                  isActive: currentIndex == 4,
+                  onTap: () => _onTap(context, 4),
                 ),
               ],
             ),

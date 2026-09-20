@@ -31,6 +31,10 @@ dependencies:
 
   # 图标
 
+  # 应用内更新检查
+  http: ^1.2.0
+  url_launcher: ^6.3.0
+
   # 工具
   uuid: ^4.5.1
   intl: ^0.20.2
@@ -47,5 +51,27 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+  # 桌面图标生成：dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  image_path: "design/logo/icon_full.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "design/logo/icon_adaptive_bg.png"
+  adaptive_icon_foreground: "design/logo/icon_adaptive_fg.png"
+  # 包默认 16% 内缩会让内容再缩一圈，构图时已按安全区设计，这里取消内缩
+  adaptive_icon_foreground_inset: 0
+  web:
+    generate: true
+    image_path: "design/logo/icon_full.png"
+    background_color: "#F8F4EB"
+    theme_color: "#426464"
+
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/data/university_ranking.json
+    - assets/data/discipline_catalog.json

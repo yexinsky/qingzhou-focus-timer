@@ -6,6 +6,8 @@ import 'core/services/session_feedback_service.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/repositories/subject_repository.dart';
 import 'data/repositories/feynman_repository.dart';
+import 'data/repositories/college_preference_repository.dart';
+import 'providers/college_preference_provider.dart';
 import 'providers/feynman_provider.dart';
 import 'providers/subject_provider.dart';
 import 'data/repositories/task_repository.dart';
@@ -38,6 +40,8 @@ Future<void> main() async {
     await settingsRepository.init();
     final subjectRepository = SubjectRepository();
     await subjectRepository.init();
+    final collegePreferenceRepository = CollegePreferenceRepository();
+    await collegePreferenceRepository.init();
     final feedbackService = SessionFeedbackService();
     await feedbackService.initialize();
 
@@ -47,6 +51,9 @@ Future<void> main() async {
           taskRepositoryProvider.overrideWithValue(taskRepository),
           settingsRepositoryProvider.overrideWithValue(settingsRepository),
           subjectRepositoryProvider.overrideWithValue(subjectRepository),
+          collegePreferenceRepositoryProvider.overrideWithValue(
+            collegePreferenceRepository,
+          ),
           feynmanRepositoryProvider.overrideWithValue(feynmanRepository),
           sessionFeedbackServiceProvider.overrideWithValue(feedbackService),
         ],
