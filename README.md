@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.47.2-blue" alt="Flutter">
-  <img src="https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web-green" alt="Platforms">
+  <img src="https://img.shields.io/badge/Platforms-Android%20%7C%20Web-green" alt="Platforms">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
 </p>
 
@@ -81,7 +81,7 @@
 
 - 费曼讲解目前仅支持文字版，录音功能暂未提供。
 - 白噪音播放器和音频素材尚未提供，设置页会显示”即将推出”。
-- 正式应用商店发布前仍需配置 Android/iOS 正式签名。
+- 正式应用商店发布前仍需配置 Android 正式签名。
 
 ## 技术栈
 
