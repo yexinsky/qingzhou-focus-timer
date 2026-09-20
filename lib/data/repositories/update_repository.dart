@@ -29,6 +29,7 @@ class UpdateRepository {
   static const List<String> _proxyPrefixes = [
     'https://ghfast.top/',
     'https://gh-proxy.com/',
+    'https://mirror.ghproxy.com/',
   ];
 
   /// 用户选择"跳过此版本"后记录的版本号。

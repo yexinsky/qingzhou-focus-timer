@@ -141,7 +141,7 @@ void main() {
       );
       final update = await repo.fetchLatestUpdate();
       expect(update, isNull);
-      expect(callCount, 3);
+      expect(callCount, 4);
     });
 
     test('非 200、非法 JSON、请求异常都静默返回 null', () async {
