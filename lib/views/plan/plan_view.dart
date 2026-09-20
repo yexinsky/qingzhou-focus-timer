@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
+import '../../providers/daily_goal_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../data/models/task.dart';
+import 'widgets/daily_goal_card.dart';
+import 'widgets/month_calendar.dart';
 import 'widgets/task_card.dart';
 import 'widgets/add_task_sheet.dart';
 
@@ -15,15 +18,27 @@ class PlanView extends ConsumerStatefulWidget {
 }
 
 class _PlanViewState extends ConsumerState<PlanView> {
+  static const _weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
   DateTime _dayOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
+
   String _dateTitle(DateTime date) {
     final today = _dayOnly(DateTime.now());
     final day = _dayOnly(date);
-    if (day == today) return '今日规划';
-    if (day == today.add(const Duration(days: 1))) return '明日规划';
-    return '${date.month}月${date.day}日规划';
+    final diff = day.difference(today).inDays;
+    final weekday = _weekdayNames[date.weekday - 1];
+    final label = switch (diff) {
+      0 => '今天',
+      1 => '明天',
+      -1 => '昨天',
+      _ => '${date.month}月${date.day}日',
+    };
+    return '$label · $weekday';
   }
+
+  String _monthKeyOf(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}';
 
   void _showTaskSheet({Task? task}) {
     final selected = ref.read(selectedPlanDateProvider);
@@ -33,39 +48,30 @@ class _PlanViewState extends ConsumerState<PlanView> {
       builder: (_) => AddTaskSheet(
         task: task,
         initialDate: selected,
-        onSave: (value) {
+        onSave: (tasks) {
           final notifier = ref.read(tasksProvider.notifier);
           if (task == null) {
-            notifier.addTask(
-              value.title,
-              value.subject,
-              dateKey: value.dateKey,
-              priority: value.priority,
-              note: value.note,
-              estimatedPomodoros: value.estimatedPomodoros,
-            );
+            for (final value in tasks) {
+              notifier.addTask(
+                value.title,
+                value.subject,
+                dateKey: value.dateKey,
+                priority: value.priority,
+                note: value.note,
+                estimatedPomodoros: value.estimatedPomodoros,
+              );
+            }
           } else {
-            notifier.updateTask(value);
+            notifier.updateTask(tasks.first);
           }
         },
       ),
     );
   }
 
-  void _selectPreset(int offset) =>
-      ref.read(selectedPlanDateProvider.notifier).state = _dayOnly(
-        DateTime.now(),
-      ).add(Duration(days: offset));
-  Future<void> _pickDate() async {
-    final current = ref.read(selectedPlanDateProvider);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: current,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null)
-      ref.read(selectedPlanDateProvider.notifier).state = picked;
+  void _selectDate(DateTime date) {
+    ref.read(selectedPlanDateProvider.notifier).state = _dayOnly(date);
+    ref.read(calendarMonthProvider.notifier).state = _monthKeyOf(date);
   }
 
   void _start(Task task) {
@@ -77,8 +83,11 @@ class _PlanViewState extends ConsumerState<PlanView> {
   Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
     final selected = ref.watch(selectedPlanDateProvider);
+    final markedDates = ref.watch(monthTaskDateKeysProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final open = tasks.where((t) => !t.completed).toList();
     final done = tasks.where((t) => t.completed).toList();
+
     Widget card(Task task) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -95,6 +104,7 @@ class _PlanViewState extends ConsumerState<PlanView> {
         ),
       ),
     );
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showTaskSheet(),
@@ -105,69 +115,83 @@ class _PlanViewState extends ConsumerState<PlanView> {
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 42, 24, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.fromLTRB(20, 36, 20, 0),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _dateTitle(selected),
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.w300),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _pickDate,
-                          tooltip: '选择日期',
-                          icon: Icon(Icons.calendar_today_outlined),
-                        ),
-                      ],
+                    Expanded(
+                      child: Text(
+                        '计划',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w300),
+                      ),
                     ),
+                    TextButton.icon(
+                      onPressed: () => _selectDate(DateTime.now()),
+                      icon: const Icon(Icons.today_outlined, size: 18),
+                      label: const Text('今天'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: dark ? AppColors.cardDark : AppColors.cardLight,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: MonthCalendar(
+                    selectedDate: selected,
+                    markedDates: markedDates,
+                    onDateSelected: _selectDate,
+                    onMonthChanged: (monthKey) =>
+                        ref.read(calendarMonthProvider.notifier).state =
+                            monthKey,
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: DailyGoalCard(date: selected),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Row(
+                  children: [
                     Text(
-                      '还有 ${open.length} 项任务',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      _dateTitle(selected),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    SegmentedButton<int>(
-                      segments: const [
-                        ButtonSegment(value: 0, label: Text('今天')),
-                        ButtonSegment(value: 1, label: Text('明天')),
-                        ButtonSegment(value: 2, label: Text('选日期')),
-                      ],
-                      selected: {
-                        _dayOnly(selected) == _dayOnly(DateTime.now())
-                            ? 0
-                            : _dayOnly(selected) ==
-                                  _dayOnly(
-                                    DateTime.now(),
-                                  ).add(const Duration(days: 1))
-                            ? 1
-                            : 2,
-                      },
-                      onSelectionChanged: (s) {
-                        final v = s.first;
-                        if (v < 2)
-                          _selectPreset(v);
-                        else
-                          _pickDate();
-                      },
+                    const Spacer(),
+                    Text(
+                      open.isEmpty ? '全部完成' : '还有 ${open.length} 项任务',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
             if (tasks.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.calendar_today_outlined,
-                        size: 60,
+                        Icons.event_note_outlined,
+                        size: 48,
                         color: AppColors.textSecondary.withValues(alpha: .3),
                       ),
                       const SizedBox(height: 12),
@@ -175,15 +199,21 @@ class _PlanViewState extends ConsumerState<PlanView> {
                         '这一天还没有计划',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 6),
-                      const Text('点击 + 添加任务'),
+                      const SizedBox(height: 4),
+                      Text(
+                        '点击 + 添加任务',
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withValues(alpha: .7),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             if (open.isNotEmpty)
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (_, i) => card(open[i]),
@@ -194,7 +224,7 @@ class _PlanViewState extends ConsumerState<PlanView> {
             if (done.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                   child: Text(
                     '已完成 ${done.length}',
                     style: TextStyle(color: AppColors.textSecondary),
@@ -202,7 +232,7 @@ class _PlanViewState extends ConsumerState<PlanView> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (_, i) => card(done[i]),

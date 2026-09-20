@@ -8,13 +8,11 @@ class SettingsState {
   final int longBreakDuration;
   final int longBreakInterval;
   final bool strictMode;
-  final bool autoWhiteNoise;
   final bool notificationEnabled;
   final bool vibrationEnabled;
   final bool screenAlwaysOn;
-  final String? whiteNoiseSoundId;
-  final double whiteNoiseVolume;
-  final String ambientSoundsJson;
+  final String dailyGoalsJson;
+  final int defaultDailyGoal;
 
   SettingsState({
     required this.focusDuration,
@@ -22,13 +20,11 @@ class SettingsState {
     required this.longBreakDuration,
     required this.longBreakInterval,
     required this.strictMode,
-    required this.autoWhiteNoise,
     required this.notificationEnabled,
     required this.vibrationEnabled,
     required this.screenAlwaysOn,
-    this.whiteNoiseSoundId,
-    this.whiteNoiseVolume = 0.5,
-    this.ambientSoundsJson = '[]',
+    this.dailyGoalsJson = '{}',
+    this.defaultDailyGoal = 8,
   });
 
   SettingsState copyWith({
@@ -37,14 +33,11 @@ class SettingsState {
     int? longBreakDuration,
     int? longBreakInterval,
     bool? strictMode,
-    bool? autoWhiteNoise,
     bool? notificationEnabled,
     bool? vibrationEnabled,
     bool? screenAlwaysOn,
-    String? whiteNoiseSoundId,
-    bool clearWhiteNoiseSoundId = false,
-    double? whiteNoiseVolume,
-    String? ambientSoundsJson,
+    String? dailyGoalsJson,
+    int? defaultDailyGoal,
   }) {
     return SettingsState(
       focusDuration: focusDuration ?? this.focusDuration,
@@ -52,15 +45,11 @@ class SettingsState {
       longBreakDuration: longBreakDuration ?? this.longBreakDuration,
       longBreakInterval: longBreakInterval ?? this.longBreakInterval,
       strictMode: strictMode ?? this.strictMode,
-      autoWhiteNoise: autoWhiteNoise ?? this.autoWhiteNoise,
       notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       screenAlwaysOn: screenAlwaysOn ?? this.screenAlwaysOn,
-      whiteNoiseSoundId: clearWhiteNoiseSoundId
-          ? null
-          : (whiteNoiseSoundId ?? this.whiteNoiseSoundId),
-      whiteNoiseVolume: whiteNoiseVolume ?? this.whiteNoiseVolume,
-      ambientSoundsJson: ambientSoundsJson ?? this.ambientSoundsJson,
+      dailyGoalsJson: dailyGoalsJson ?? this.dailyGoalsJson,
+      defaultDailyGoal: defaultDailyGoal ?? this.defaultDailyGoal,
     );
   }
 }
@@ -83,13 +72,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           longBreakDuration: _settingsRepo.longBreakDuration,
           longBreakInterval: _settingsRepo.longBreakInterval,
           strictMode: _settingsRepo.strictMode,
-          autoWhiteNoise: _settingsRepo.autoWhiteNoise,
           notificationEnabled: _settingsRepo.notificationEnabled,
           vibrationEnabled: _settingsRepo.vibrationEnabled,
           screenAlwaysOn: _settingsRepo.screenAlwaysOn,
-          whiteNoiseSoundId: _settingsRepo.whiteNoiseSoundId,
-          whiteNoiseVolume: _settingsRepo.whiteNoiseVolume,
-          ambientSoundsJson: _settingsRepo.ambientSoundsJson,
+          dailyGoalsJson: _settingsRepo.dailyGoalsJson,
+          defaultDailyGoal: _settingsRepo.defaultDailyGoal,
         ),
       );
 
@@ -119,12 +106,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(strictMode: newValue);
   }
 
-  Future<void> toggleAutoWhiteNoise() async {
-    final newValue = !state.autoWhiteNoise;
-    await _settingsRepo.setAutoWhiteNoise(newValue);
-    state = state.copyWith(autoWhiteNoise: newValue);
-  }
-
   Future<void> setNotificationEnabled(bool enabled) async {
     await _settingsRepo.setNotificationEnabled(enabled);
     state = state.copyWith(notificationEnabled: enabled);
@@ -140,16 +121,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(screenAlwaysOn: enabled);
   }
 
-  Future<void> setWhiteNoiseSoundId(String? id) async {
-    await _settingsRepo.setWhiteNoiseSoundId(id);
-    state = state.copyWith(
-      whiteNoiseSoundId: id,
-      clearWhiteNoiseSoundId: id == null,
-    );
+  Future<void> setDefaultDailyGoal(int count) async {
+    await _settingsRepo.setDefaultDailyGoal(count);
+    state = state.copyWith(defaultDailyGoal: count);
   }
 
-  Future<void> setWhiteNoiseVolume(double vol) async {
-    await _settingsRepo.setWhiteNoiseVolume(vol);
-    state = state.copyWith(whiteNoiseVolume: vol);
+  Future<void> setDailyGoalsJson(String json) async {
+    await _settingsRepo.setDailyGoalsJson(json);
+    state = state.copyWith(dailyGoalsJson: json);
   }
 }

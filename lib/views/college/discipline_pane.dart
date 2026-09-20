@@ -230,9 +230,12 @@ class _CategorySection extends StatelessWidget {
             children: [
               Text(
                 '${group.code} ${group.name}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  color: dark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -289,9 +292,12 @@ class _ItemTile extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
+                    color: dark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 5),

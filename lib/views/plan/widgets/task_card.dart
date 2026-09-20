@@ -98,7 +98,7 @@ class TaskCard extends StatelessWidget {
                           style: TextStyle(color: color, fontSize: 12),
                         ),
                         Text(
-                          '$actualPomodoros/${task.estimatedPomodoros} 个番茄',
+                          '$actualPomodoros/${task.estimatedPomodoros} 个专注',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 12,

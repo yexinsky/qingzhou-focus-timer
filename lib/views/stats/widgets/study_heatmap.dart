@@ -116,15 +116,23 @@ class _HeatmapPainter extends CustomPainter {
       final month = date.month;
       if (month != lastMonth) {
         final monthNames = [
-          '', '1月', '2月', '3月', '4月', '5月', '6月',
-          '7月', '8月', '9月', '10月', '11月', '12月',
+          '',
+          '1月',
+          '2月',
+          '3月',
+          '4月',
+          '5月',
+          '6月',
+          '7月',
+          '8月',
+          '9月',
+          '10月',
+          '11月',
+          '12月',
         ];
         textPainter.text = TextSpan(
           text: monthNames[month],
-          style: TextStyle(
-            color: primary.withValues(alpha: 0.5),
-            fontSize: 9,
-          ),
+          style: TextStyle(color: primary.withValues(alpha: 0.5), fontSize: 9),
         );
         textPainter.layout();
         final x = leftMargin + col * (cellSize + gap);
@@ -146,10 +154,7 @@ class _HeatmapPainter extends CustomPainter {
       if (dayLabels[row].isEmpty) continue;
       textPainter.text = TextSpan(
         text: dayLabels[row],
-        style: TextStyle(
-          color: primary.withValues(alpha: 0.4),
-          fontSize: 9,
-        ),
+        style: TextStyle(color: primary.withValues(alpha: 0.4), fontSize: 9),
       );
       textPainter.layout();
       final y = topMargin + row * (cellSize + gap);

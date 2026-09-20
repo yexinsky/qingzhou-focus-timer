@@ -34,15 +34,19 @@ class UniversityCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 高度与名称行（收藏图标 20 + 上下 padding 4）一致，使序号与校名垂直居中对齐
           SizedBox(
             width: 44,
-            child: Text(
-              university.rank,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-                color: isTop3 ? accent : AppColors.textSecondary,
+            height: 28,
+            child: Center(
+              child: Text(
+                university.rank,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w300,
+                  color: isTop3 ? accent : AppColors.textSecondary,
+                ),
               ),
             ),
           ),
@@ -58,9 +62,12 @@ class UniversityCard extends StatelessWidget {
                         university.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
+                          color: dark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                         ),
                       ),
                     ),

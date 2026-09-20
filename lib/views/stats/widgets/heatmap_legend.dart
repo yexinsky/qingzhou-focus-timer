@@ -15,9 +15,9 @@ class HeatmapLegend extends StatelessWidget {
       children: [
         Text(
           '少',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 4),
         for (final opacity in [0.08, 0.25, 0.50, 0.75, 1.0])
@@ -35,9 +35,9 @@ class HeatmapLegend extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '多',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

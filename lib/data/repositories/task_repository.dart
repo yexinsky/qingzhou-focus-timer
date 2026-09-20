@@ -46,6 +46,12 @@ class TaskRepository {
           return b.createdAt.compareTo(a.createdAt);
         });
 
+  /// 指定月份内有任务的日期集合（yyyy-MM 前缀匹配）
+  Set<String> getTaskDateKeysInMonth(String monthKey) => {
+    for (final task in _taskBox.values)
+      if (task.dateKey.startsWith(monthKey)) task.dateKey,
+  };
+
   Future<void> postponeTask(String taskId, String dateKey) async {
     final task = _taskBox.get(taskId);
     if (task != null) {

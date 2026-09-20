@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -81,7 +82,33 @@ class AmbientSoundService {
       await _player.play();
       _isPlaying = true;
       _currentPath = filePath;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AmbientSoundService.play failed: $e');
+      _isPlaying = false;
+      _currentPath = null;
+    }
+  }
+
+  /// 列表循环：按顺序连续播放全部音频并循环，从 [startIndex] 开始。
+  Future<void> playList(List<String> filePaths, int startIndex) async {
+    try {
+      if (_isPlaying) {
+        await _player.stop();
+      }
+      final safeIndex = startIndex.clamp(0, filePaths.length - 1);
+      await _player.setAudioSource(
+        ConcatenatingAudioSource(
+          children: [for (final p in filePaths) AudioSource.file(p)],
+        ),
+        initialIndex: safeIndex,
+      );
+      await _player.setLoopMode(LoopMode.all);
+      await _player.setVolume(_volume);
+      await _player.play();
+      _isPlaying = true;
+      _currentPath = filePaths[safeIndex];
+    } catch (e) {
+      debugPrint('AmbientSoundService.playList failed: $e');
       _isPlaying = false;
       _currentPath = null;
     }

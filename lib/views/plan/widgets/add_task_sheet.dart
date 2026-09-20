@@ -4,11 +4,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
 import '../../../providers/subject_provider.dart';
 import '../../widgets/subject_manage_sheet.dart';
+import 'month_calendar.dart';
 
 class AddTaskSheet extends ConsumerStatefulWidget {
   final Task? task;
   final DateTime initialDate;
-  final ValueChanged<Task> onSave;
+  final ValueChanged<List<Task>> onSave;
   const AddTaskSheet({
     super.key,
     this.task,
@@ -24,6 +25,7 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   late final TextEditingController _note;
   late String _subject;
   late DateTime _date;
+  DateTime? _rangeEnd;
   late int _priority;
   late int _estimated;
 
@@ -50,32 +52,60 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
 
   String _key(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  Future<void> _pickDate() async {
-    final value = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (value != null) setState(() => _date = value);
+
+  String _md(DateTime d) => '${d.month}月${d.day}日';
+
+  /// 点击日历日期：新增时第一次点选起点、第二次点选终点（自动纠正先后），
+  /// 已有终点或编辑已有任务时回到单日选择。
+  void _onCalendarDate(DateTime d) {
+    setState(() {
+      if (widget.task != null) {
+        _date = d;
+        return;
+      }
+      final day = DateTime(d.year, d.month, d.day);
+      if (_rangeEnd != null) {
+        _rangeEnd = null;
+        _date = day;
+      } else if (day == _date) {
+        return;
+      } else if (day.isBefore(_date)) {
+        _rangeEnd = _date;
+        _date = day;
+      } else {
+        _rangeEnd = day;
+      }
+    });
   }
 
   void _submit() {
     if (_title.text.trim().isEmpty) return;
     final old = widget.task;
-    widget.onSave(
-      Task(
-        id: old?.id ?? '',
-        title: _title.text.trim(),
-        subject: _subject,
-        completed: old?.completed ?? false,
-        dateKey: _key(_date),
-        createdAt: old?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
-        priority: _priority,
-        note: _note.text.trim(),
-        estimatedPomodoros: _estimated,
-      ),
-    );
+    final end = old == null ? _rangeEnd : null;
+    final days = end == null
+        ? [_date]
+        : [
+            for (
+              var d = DateTime(_date.year, _date.month, _date.day);
+              !d.isAfter(DateTime(end.year, end.month, end.day));
+              d = d.add(const Duration(days: 1))
+            )
+              d,
+          ];
+    widget.onSave([
+      for (final date in days)
+        Task(
+          id: old?.id ?? '',
+          title: _title.text.trim(),
+          subject: _subject,
+          completed: old?.completed ?? false,
+          dateKey: _key(date),
+          createdAt: old?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+          priority: _priority,
+          note: _note.text.trim(),
+          estimatedPomodoros: _estimated,
+        ),
+    ]);
     Navigator.pop(context);
   }
 
@@ -171,16 +201,44 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
                   .toList(),
             ),
             const SizedBox(height: 16),
+            Text('日期', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            MonthCalendar(
+              selectedDate: _date,
+              rangeEnd: widget.task == null ? _rangeEnd : null,
+              showMarks: false,
+              onDateSelected: _onCalendarDate,
+            ),
+            if (widget.task == null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _rangeEnd == null
+                          ? '提示：再点选一天可作为结束日期，批量添加到多天'
+                          : '将添加到 ${_md(_date)} 至 ${_md(_rangeEnd!)} · 共 ${_rangeEnd!.difference(_date).inDays + 1} 天',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _rangeEnd == null
+                            ? AppColors.textSecondary
+                            : (dark
+                                  ? AppColors.primaryDark
+                                  : AppColors.primaryLight),
+                      ),
+                    ),
+                  ),
+                  if (_rangeEnd != null)
+                    TextButton(
+                      onPressed: () => setState(() => _rangeEnd = null),
+                      child: const Text('仅当天'),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text('${_date.month}月${_date.day}日'),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     initialValue: _priority,
@@ -201,7 +259,7 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text('预计番茄数'),
+                const Text('预计专注段数'),
                 const Spacer(),
                 IconButton(
                   onPressed: _estimated > 1
@@ -219,9 +277,22 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: dark
+                      ? AppColors.primaryDark
+                      : AppColors.primaryLight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: _submit,
-                child: Text(widget.task == null ? '添加' : '保存'),
+                child: Text(
+                  widget.task == null
+                      ? _rangeEnd == null
+                            ? '添加'
+                            : '添加到 ${_rangeEnd!.difference(_date).inDays + 1} 天'
+                      : '保存',
+                ),
               ),
             ),
           ],

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/ambient_sound_provider.dart';
-import '../../providers/settings_provider.dart';
 
 class AmbientSoundSettingsSheet extends ConsumerWidget {
   const AmbientSoundSettingsSheet({super.key});
@@ -23,7 +22,6 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(ambientSoundProvider);
-    final settings = ref.watch(settingsProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = dark ? AppColors.primaryDark : AppColors.primaryLight;
 
@@ -45,25 +43,26 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            '氛围音',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('氛围音', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(
             '导入音频文件，专注时自动播放',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           _buildSoundList(context, ref, state, primary),
           const SizedBox(height: 16),
           _buildImportButton(context, ref, primary),
+          if (state.sounds.length > 1) ...[
+            const SizedBox(height: 16),
+            _buildLoopModeSelector(context, ref, state, primary),
+          ],
           const SizedBox(height: 24),
           _buildVolumeSlider(context, ref, state, primary),
           const SizedBox(height: 20),
-          _buildAutoPlayToggle(context, ref, settings, primary),
+          _buildAutoPlayToggle(context, ref, state, primary),
           SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
@@ -89,9 +88,9 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               '还没有音频文件',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 4),
             Text(
@@ -131,16 +130,10 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
                         ref
                             .read(ambientSoundProvider.notifier)
                             .clearSoundSelection();
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setWhiteNoiseSoundId(null);
                       } else {
                         ref
                             .read(ambientSoundProvider.notifier)
                             .selectSound(sound.id);
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setWhiteNoiseSoundId(sound.id);
                       }
                     },
                     child: Padding(
@@ -207,10 +200,7 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
       child: OutlinedButton.icon(
         onPressed: () => _pickAndImport(context, ref),
         icon: Icon(Icons.add, size: 18, color: primary),
-        label: Text(
-          '导入音频文件',
-          style: TextStyle(color: primary, fontSize: 14),
-        ),
+        label: Text('导入音频文件', style: TextStyle(color: primary, fontSize: 14)),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: primary.withValues(alpha: 0.4)),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -219,6 +209,47 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLoopModeSelector(
+    BuildContext context,
+    WidgetRef ref,
+    AmbientSoundState state,
+    Color primary,
+  ) {
+    return Row(
+      children: [
+        Icon(
+          Icons.repeat_one_on,
+          size: 18,
+          color: AppColors.textSecondary,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '循环模式',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        ),
+        const Spacer(),
+        for (final (label, playlist) in [
+          ('单曲循环', false),
+          ('列表循环', true),
+        ])
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: ChoiceChip(
+              label: Text(label, style: const TextStyle(fontSize: 12)),
+              visualDensity: VisualDensity.compact,
+              selected: state.loopPlaylist == playlist,
+              onSelected: (_) => ref
+                  .read(ambientSoundProvider.notifier)
+                  .setLoopPlaylist(playlist),
+              selectedColor: primary.withValues(alpha: 0.18),
+            ),
+          ),
+      ],
     );
   }
 
@@ -233,17 +264,13 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Icon(
-              Icons.volume_down,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.volume_down, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
               '音量',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             const Spacer(),
             Text(
@@ -268,7 +295,6 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             value: state.volume,
             onChanged: (value) {
               ref.read(ambientSoundProvider.notifier).setVolume(value);
-              ref.read(settingsProvider.notifier).setWhiteNoiseVolume(value);
             },
           ),
         ),
@@ -279,7 +305,7 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
   Widget _buildAutoPlayToggle(
     BuildContext context,
     WidgetRef ref,
-    SettingsState settings,
+    AmbientSoundState state,
     Color primary,
   ) {
     return Container(
@@ -296,10 +322,7 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '专注时自动播放',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text('专注时自动播放', style: Theme.of(context).textTheme.titleMedium),
                 Text(
                   '开始专注计时时自动播放所选氛围音',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -313,10 +336,9 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
           Transform.scale(
             scale: 0.8,
             child: CupertinoSwitch(
-              value: settings.autoWhiteNoise,
+              value: state.enabled,
               activeTrackColor: primary,
               onChanged: (_) {
-                ref.read(settingsProvider.notifier).toggleAutoWhiteNoise();
                 ref.read(ambientSoundProvider.notifier).toggleEnabled();
               },
             ),
@@ -329,23 +351,38 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
   Future<void> _pickAndImport(BuildContext context, WidgetRef ref) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
-      allowMultiple: false,
+      allowMultiple: true,
     );
-    if (result == null || result.files.single.path == null) return;
-    final file = File(result.files.single.path!);
-    final sound = await ref
-        .read(ambientSoundProvider.notifier)
-        .importFile(file);
-    if (!context.mounted) return;
-    if (sound != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已导入「${sound.name}」')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('导入失败，请重试')),
-      );
+    if (result == null) return;
+    final paths = result.files
+        .map((f) => f.path)
+        .whereType<String>()
+        .toList();
+    if (paths.isEmpty) return;
+    var imported = 0;
+    var failed = 0;
+    for (final path in paths) {
+      final sound = await ref
+          .read(ambientSoundProvider.notifier)
+          .importFile(File(path));
+      if (sound == null) {
+        failed++;
+      } else {
+        imported++;
+      }
     }
+    if (!context.mounted) return;
+    final String message;
+    if (imported == 0) {
+      message = '导入失败，请重试';
+    } else if (failed > 0) {
+      message = '已导入 $imported 个音频，$failed 个失败';
+    } else {
+      message = '已导入 $imported 个音频';
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, String soundId) {
@@ -363,10 +400,6 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(ambientSoundProvider.notifier).removeSound(soundId);
-              final currentSelected = ref.read(settingsProvider).whiteNoiseSoundId;
-              if (currentSelected == soundId) {
-                ref.read(settingsProvider.notifier).setWhiteNoiseSoundId(null);
-              }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('删除'),

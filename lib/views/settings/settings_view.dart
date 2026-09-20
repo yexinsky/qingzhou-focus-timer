@@ -91,13 +91,24 @@ class SettingsView extends ConsumerWidget {
               _duration(
                 context,
                 '长休息间隔',
-                '每 N 个番茄后触发长休息',
+                '每 N 个专注段后触发长休息',
                 settings.longBreakInterval,
                 (v) =>
                     ref.read(settingsProvider.notifier).setLongBreakInterval(v),
                 min: 2,
                 max: 10,
                 unit: '个',
+              ),
+              _duration(
+                context,
+                '默认每日目标',
+                '计划页未单独设置时的每日专注段目标',
+                settings.defaultDailyGoal,
+                (v) =>
+                    ref.read(settingsProvider.notifier).setDefaultDailyGoal(v),
+                min: 1,
+                max: 24,
+                unit: '段',
               ),
             ]),
             const SizedBox(height: 24),
@@ -121,12 +132,12 @@ class SettingsView extends ConsumerWidget {
               SettingTile(
                 title: '氛围音',
                 subtitle: ambientState.selectedSound != null
-                    ? '${ambientState.selectedSound!.name} · 音量 ${(settings.whiteNoiseVolume * 100).toInt()}%'
+                    ? '${ambientState.selectedSound!.name} · 音量 ${(ambientState.volume * 100).toInt()}%'
                     : '导入音频文件，沉浸专注',
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (settings.autoWhiteNoise)
+                    if (ambientState.enabled)
                       Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: Icon(

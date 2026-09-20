@@ -117,9 +117,9 @@ class _StatsViewState extends ConsumerState<StatsView> {
             children: [
               Text(
                 '学习日历',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const HeatmapLegend(),
             ],
@@ -171,13 +171,13 @@ class _StatsViewState extends ConsumerState<StatsView> {
           const SizedBox(width: 16),
           Expanded(
             child: StatCard(
-              title: '番茄数',
+              title: '专注段',
               value: '${period.totalPomodoros}',
               unit: '个',
               subtitle: _currentTab == StatsTab.day
                   ? '今日完成 ${period.totalPomodoros} 个'
                   : '平均每日 ${(period.totalPomodoros / divisor).toStringAsFixed(1)} 个',
-              icon: Icons.eco_outlined,
+              icon: Icons.check_circle_outline,
               iconColor: AppColors.subjectMath,
             ),
           ),

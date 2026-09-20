@@ -58,7 +58,10 @@ class UpdateRepository {
   /// 拉取并解析远端清单。先尝试直连，失败后依次尝试加速代理；
   /// 全部失败返回 null——更新检查必须静默失败，绝不阻塞或打断正常启动。
   Future<AppUpdate?> fetchLatestUpdate() async {
-    final urls = [manifestUrl, for (final p in _proxyPrefixes) '$p$manifestUrl'];
+    final urls = [
+      manifestUrl,
+      for (final p in _proxyPrefixes) '$p$manifestUrl',
+    ];
     final client = _clientOverride ?? http.Client();
     try {
       for (final url in urls) {

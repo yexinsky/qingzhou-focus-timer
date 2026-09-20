@@ -14,6 +14,9 @@ class SettingsRepository {
   static const String _whiteNoiseSoundIdKey = 'white_noise_sound_id';
   static const String _whiteNoiseVolumeKey = 'white_noise_volume';
   static const String _ambientSoundsKey = 'ambient_sounds_json';
+  static const String _ambientLoopPlaylistKey = 'ambient_loop_playlist';
+  static const String _dailyGoalsKey = 'daily_goals_json';
+  static const String _defaultDailyGoalKey = 'default_daily_goal';
 
   late SharedPreferences _prefs;
 
@@ -64,15 +67,27 @@ class SettingsRepository {
     return _prefs.setString(_whiteNoiseSoundIdKey, id);
   }
 
-  double get whiteNoiseVolume =>
-      _prefs.getDouble(_whiteNoiseVolumeKey) ?? 0.5;
+  double get whiteNoiseVolume => _prefs.getDouble(_whiteNoiseVolumeKey) ?? 0.5;
   Future<void> setWhiteNoiseVolume(double vol) =>
       _prefs.setDouble(_whiteNoiseVolumeKey, vol);
 
-  String get ambientSoundsJson =>
-      _prefs.getString(_ambientSoundsKey) ?? '[]';
-  Future<void> setAmbientSoundsJson(String json) =>
-      _prefs.setString(_ambientSoundsKey, json);
+  String get ambientSoundsJson => _prefs.getString(_ambientSoundsKey) ?? '[]';
+  Future<void> setAmbientSoundsJson(String json) {
+    return _prefs.setString(_ambientSoundsKey, json);
+  }
+
+  bool get ambientLoopPlaylist => _prefs.getBool(_ambientLoopPlaylistKey) ?? false;
+  Future<void> setAmbientLoopPlaylist(bool value) =>
+      _prefs.setBool(_ambientLoopPlaylistKey, value);
+
+  /// 每日目标：{ "yyyy-MM-dd": 段数 }
+  String get dailyGoalsJson => _prefs.getString(_dailyGoalsKey) ?? '{}';
+  Future<void> setDailyGoalsJson(String json) =>
+      _prefs.setString(_dailyGoalsKey, json);
+
+  int get defaultDailyGoal => _prefs.getInt(_defaultDailyGoalKey) ?? 8;
+  Future<void> setDefaultDailyGoal(int count) =>
+      _prefs.setInt(_defaultDailyGoalKey, count);
 
   String? getString(String key) => _prefs.getString(key);
   Future<bool> setString(String key, String value) =>

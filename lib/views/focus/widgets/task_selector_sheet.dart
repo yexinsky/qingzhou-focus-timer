@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
+import '../../../providers/ambient_sound_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/subject_provider.dart';
+import '../../settings/ambient_sound_settings_sheet.dart';
 import '../../widgets/subject_manage_sheet.dart';
 
 class TaskSelectorSheet extends ConsumerWidget {
@@ -164,6 +166,11 @@ class TaskSelectorSheet extends ConsumerWidget {
                   },
                 ),
               ),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: _AmbientSoundEntry(),
+              ),
               SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
           ),
@@ -319,6 +326,70 @@ class _SubjectChip extends StatelessWidget {
                   color: subjectColor,
                   fontSize: 14,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 氛围音快速入口：显示当前所选音频与循环模式，点按打开氛围音设置。
+class _AmbientSoundEntry extends ConsumerWidget {
+  const _AmbientSoundEntry();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(ambientSoundProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => AmbientSoundSettingsSheet.show(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: 0.06),
+            border: Border.all(color: primary.withValues(alpha: 0.25)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                state.isPlaying
+                    ? Icons.graphic_eq_rounded
+                    : Icons.library_music_outlined,
+                size: 20,
+                color: primary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '氛围音',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  state.selectedSound?.name ?? '未选择',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
               ),
             ],
           ),

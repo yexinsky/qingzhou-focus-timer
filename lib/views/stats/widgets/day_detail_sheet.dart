@@ -39,10 +39,7 @@ class DayDetailSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            _dateTitle,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(_dateTitle, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -56,9 +53,9 @@ class DayDetailSheet extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _SummaryItem(
-                  label: '番茄数',
+                  label: '专注段',
                   value: '${stats.completedPomodoros} 个',
-                  icon: Icons.eco_outlined,
+                  icon: Icons.check_circle_outline,
                   iconColor: AppColors.subjectMath,
                 ),
               ),
@@ -72,9 +69,9 @@ class DayDetailSheet extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               '这天没有专注记录',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
           ],
           SizedBox(height: MediaQuery.of(context).padding.bottom),
@@ -93,9 +90,9 @@ class DayDetailSheet extends StatelessWidget {
       children: [
         Text(
           '科目分布',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         for (final entry in sorted)
@@ -175,16 +172,16 @@ class _SummaryItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

@@ -634,9 +634,12 @@ class _TargetPickerSheetState extends State<_TargetPickerSheet> {
                               Expanded(
                                 child: Text(
                                   university.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
+                                    color: dark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                               ),
