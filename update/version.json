@@ -1,10 +1,10 @@
 {
   "//": "应用内更新清单：发布新版本时更新 version/buildNumber/releaseNotes/downloadUrl，并同步 pubspec.yaml 的 version 字段。downloadUrls 可按平台（android/ios 等）覆盖 downloadUrl。",
-  "version": "1.2.2",
-  "buildNumber": 5,
-  "releaseNotes": "修复检查更新失败的问题（缺少网络权限），添加更多加速代理",
-  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.2",
+  "version": "1.2.3",
+  "buildNumber": 6,
+  "releaseNotes": "修复弹窗黑幕点击退出与每日目标弹窗显示；计划页升级中文月历，支持起止日期批量添加与每日目标；氛围音支持多选导入、循环模式与专注自动播放联动；院校列表校名颜色与序号对齐优化",
+  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.3",
   "downloadUrls": {
-    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.2/app-release.apk"
+    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.3/qingzhou-focus-v1.2.3.apk"
   }
 }
