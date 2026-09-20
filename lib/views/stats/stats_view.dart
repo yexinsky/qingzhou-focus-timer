@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/time_formatter.dart';
+import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/stats_provider.dart';
 import '../../data/models/daily_stats.dart';
 import '../../data/models/focus_session.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/weekly_chart.dart';
 import 'widgets/subject_pie_chart.dart';
+import 'widgets/study_heatmap.dart';
+import 'widgets/heatmap_legend.dart';
+import 'widgets/day_detail_sheet.dart';
 
 enum StatsTab { day, week, month }
 
@@ -44,6 +48,8 @@ class _StatsViewState extends ConsumerState<StatsView> {
               _buildHeader(),
               const SizedBox(height: 24),
               _buildTabSelector(),
+              const SizedBox(height: 24),
+              _buildHeatmapSection(),
               const SizedBox(height: 24),
               _buildStatsCards(period),
               const SizedBox(height: 24),
@@ -98,6 +104,47 @@ class _StatsViewState extends ConsumerState<StatsView> {
       ],
     ),
   );
+
+  Widget _buildHeatmapSection() {
+    final yearStats = ref.watch(yearStatsProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '学习日历',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const HeatmapLegend(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: StudyHeatmap(
+              data: yearStats,
+              onDayTap: (stats, date) => _showDayDetail(stats, date),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDayDetail(DailyStats stats, DateTime date) {
+    showAdaptiveBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DayDetailSheet(stats: stats, date: date),
+    );
+  }
 
   Widget _buildStatsCards(WeeklyStats period) {
     final formatted = TimeFormatter.formatMinutesForDisplay(

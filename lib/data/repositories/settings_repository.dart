@@ -11,6 +11,9 @@ class SettingsRepository {
   static const String _vibrationEnabledKey = 'vibration_enabled';
   static const String _screenAlwaysOnKey = 'screen_always_on';
   static const String _firstLaunchKey = 'first_launch';
+  static const String _whiteNoiseSoundIdKey = 'white_noise_sound_id';
+  static const String _whiteNoiseVolumeKey = 'white_noise_volume';
+  static const String _ambientSoundsKey = 'ambient_sounds_json';
 
   late SharedPreferences _prefs;
 
@@ -54,6 +57,22 @@ class SettingsRepository {
   bool get screenAlwaysOn => _prefs.getBool(_screenAlwaysOnKey) ?? true;
   Future<void> setScreenAlwaysOn(bool enabled) =>
       _prefs.setBool(_screenAlwaysOnKey, enabled);
+
+  String? get whiteNoiseSoundId => _prefs.getString(_whiteNoiseSoundIdKey);
+  Future<void> setWhiteNoiseSoundId(String? id) {
+    if (id == null) return _prefs.remove(_whiteNoiseSoundIdKey);
+    return _prefs.setString(_whiteNoiseSoundIdKey, id);
+  }
+
+  double get whiteNoiseVolume =>
+      _prefs.getDouble(_whiteNoiseVolumeKey) ?? 0.5;
+  Future<void> setWhiteNoiseVolume(double vol) =>
+      _prefs.setDouble(_whiteNoiseVolumeKey, vol);
+
+  String get ambientSoundsJson =>
+      _prefs.getString(_ambientSoundsKey) ?? '[]';
+  Future<void> setAmbientSoundsJson(String json) =>
+      _prefs.setString(_ambientSoundsKey, json);
 
   String? getString(String key) => _prefs.getString(key);
   Future<bool> setString(String key, String value) =>

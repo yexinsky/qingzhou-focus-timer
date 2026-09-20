@@ -46,4 +46,13 @@ class TimeFormatter {
       return '${date.month}/${date.day}';
     });
   }
+
+  static DateTime parseDateKey(String dateKey) {
+    final parts = dateKey.split('-');
+    return DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
+  }
 }

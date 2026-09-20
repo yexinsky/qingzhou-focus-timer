@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/services/session_feedback_service.dart';
+import 'core/services/ambient_sound_service.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/repositories/subject_repository.dart';
 import 'data/repositories/feynman_repository.dart';
@@ -13,6 +14,7 @@ import 'providers/subject_provider.dart';
 import 'data/repositories/task_repository.dart';
 import 'providers/session_feedback_provider.dart';
 import 'providers/timer_provider.dart';
+import 'providers/ambient_sound_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +46,7 @@ Future<void> main() async {
     await collegePreferenceRepository.init();
     final feedbackService = SessionFeedbackService();
     await feedbackService.initialize();
+    final ambientSoundService = AmbientSoundService();
 
     runApp(
       ProviderScope(
@@ -56,6 +59,7 @@ Future<void> main() async {
           ),
           feynmanRepositoryProvider.overrideWithValue(feynmanRepository),
           sessionFeedbackServiceProvider.overrideWithValue(feedbackService),
+          ambientSoundServiceProvider.overrideWithValue(ambientSoundService),
         ],
         child: const QingzhouApp(),
       ),

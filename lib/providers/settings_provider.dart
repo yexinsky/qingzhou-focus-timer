@@ -12,6 +12,9 @@ class SettingsState {
   final bool notificationEnabled;
   final bool vibrationEnabled;
   final bool screenAlwaysOn;
+  final String? whiteNoiseSoundId;
+  final double whiteNoiseVolume;
+  final String ambientSoundsJson;
 
   SettingsState({
     required this.focusDuration,
@@ -23,6 +26,9 @@ class SettingsState {
     required this.notificationEnabled,
     required this.vibrationEnabled,
     required this.screenAlwaysOn,
+    this.whiteNoiseSoundId,
+    this.whiteNoiseVolume = 0.5,
+    this.ambientSoundsJson = '[]',
   });
 
   SettingsState copyWith({
@@ -35,6 +41,10 @@ class SettingsState {
     bool? notificationEnabled,
     bool? vibrationEnabled,
     bool? screenAlwaysOn,
+    String? whiteNoiseSoundId,
+    bool clearWhiteNoiseSoundId = false,
+    double? whiteNoiseVolume,
+    String? ambientSoundsJson,
   }) {
     return SettingsState(
       focusDuration: focusDuration ?? this.focusDuration,
@@ -46,6 +56,11 @@ class SettingsState {
       notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       screenAlwaysOn: screenAlwaysOn ?? this.screenAlwaysOn,
+      whiteNoiseSoundId: clearWhiteNoiseSoundId
+          ? null
+          : (whiteNoiseSoundId ?? this.whiteNoiseSoundId),
+      whiteNoiseVolume: whiteNoiseVolume ?? this.whiteNoiseVolume,
+      ambientSoundsJson: ambientSoundsJson ?? this.ambientSoundsJson,
     );
   }
 }
@@ -72,6 +87,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           notificationEnabled: _settingsRepo.notificationEnabled,
           vibrationEnabled: _settingsRepo.vibrationEnabled,
           screenAlwaysOn: _settingsRepo.screenAlwaysOn,
+          whiteNoiseSoundId: _settingsRepo.whiteNoiseSoundId,
+          whiteNoiseVolume: _settingsRepo.whiteNoiseVolume,
+          ambientSoundsJson: _settingsRepo.ambientSoundsJson,
         ),
       );
 
@@ -120,5 +138,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setScreenAlwaysOn(bool enabled) async {
     await _settingsRepo.setScreenAlwaysOn(enabled);
     state = state.copyWith(screenAlwaysOn: enabled);
+  }
+
+  Future<void> setWhiteNoiseSoundId(String? id) async {
+    await _settingsRepo.setWhiteNoiseSoundId(id);
+    state = state.copyWith(
+      whiteNoiseSoundId: id,
+      clearWhiteNoiseSoundId: id == null,
+    );
+  }
+
+  Future<void> setWhiteNoiseVolume(double vol) async {
+    await _settingsRepo.setWhiteNoiseVolume(vol);
+    state = state.copyWith(whiteNoiseVolume: vol);
   }
 }

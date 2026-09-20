@@ -14,8 +14,10 @@ import '../widgets/battery_guide_sheet.dart';
 import '../../providers/data_management_provider.dart';
 import '../../providers/session_feedback_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/ambient_sound_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/update_provider.dart';
+import 'ambient_sound_settings_sheet.dart';
 import 'widgets/setting_tile.dart';
 
 class SettingsView extends ConsumerWidget {
@@ -24,6 +26,7 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final ambientState = ref.watch(ambientSoundProvider);
     final busy = ref.watch(dataManagementProvider);
     final updateChecking = ref.watch(
       updateProvider.select((state) => state.checking),
@@ -116,14 +119,26 @@ class SettingsView extends ConsumerWidget {
                 (v) => ref.read(settingsProvider.notifier).setScreenAlwaysOn(v),
               ),
               SettingTile(
-                title: '白噪音',
-                subtitle: '音频素材与播放功能尚未提供',
-                trailing: Text(
-                  '即将推出',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                title: '氛围音',
+                subtitle: ambientState.selectedSound != null
+                    ? '${ambientState.selectedSound!.name} · 音量 ${(settings.whiteNoiseVolume * 100).toInt()}%'
+                    : '导入音频文件，沉浸专注',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (settings.autoWhiteNoise)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          size: 18,
+                          color: primaryColor,
+                        ),
+                      ),
+                    const Icon(Icons.chevron_right),
+                  ],
                 ),
+                onTap: () => AmbientSoundSettingsSheet.show(context),
               ),
             ]),
             const SizedBox(height: 24),

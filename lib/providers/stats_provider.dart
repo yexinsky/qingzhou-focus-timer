@@ -11,6 +11,11 @@ final statsProvider = Provider<StatsNotifier>((ref) {
   return StatsNotifier(ref.watch(taskRepositoryProvider));
 });
 
+final yearStatsProvider = Provider<List<DailyStats>>((ref) {
+  ref.watch(statsRefreshProvider);
+  return ref.watch(statsProvider).getYearStats();
+});
+
 class StatsNotifier {
   final TaskRepository _taskRepo;
   final DateTime Function() _now;
@@ -36,6 +41,16 @@ class StatsNotifier {
   WeeklyStats getWeeklySummary() => _summary(getWeekStats());
 
   WeeklyStats getMonthlySummary() => _summary(getMonthStats());
+
+  List<DailyStats> getYearStats() {
+    final now = _dateOnly(_now());
+    final start = now.subtract(const Duration(days: 364));
+    final alignedStart = start.subtract(Duration(days: start.weekday - 1));
+    final dayCount = now.difference(alignedStart).inDays + 1;
+    return _statsForRange(alignedStart, dayCount);
+  }
+
+  DailyStats getStatsForDate(DateTime date) => _statsForDate(date);
 
   List<FocusSession> getRecentSessions({int limit = 10}) =>
       _taskRepo.getRecentSessions(limit: limit);
