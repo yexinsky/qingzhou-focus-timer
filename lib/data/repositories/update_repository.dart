@@ -25,10 +25,16 @@ class UpdateRepository {
   static const String manifestUrl =
       'https://raw.githubusercontent.com/yexinsky/qingzhou-focus-timer/main/update/version.json';
 
+  /// 国内加速代理列表，按顺序尝试，任一成功即返回。
+  static const List<String> _proxyPrefixes = [
+    'https://ghfast.top/',
+    'https://gh-proxy.com/',
+  ];
+
   /// 用户选择"跳过此版本"后记录的版本号。
   static const String _skippedVersionKey = 'update_skipped_version';
 
-  static const Duration _timeout = Duration(seconds: 5);
+  static const Duration _timeout = Duration(seconds: 8);
 
   final http.Client? _clientOverride;
   final SharedPreferences? _prefsOverride;
@@ -48,19 +54,25 @@ class UpdateRepository {
     return PackageInfo.fromPlatform();
   }
 
-  /// 拉取并解析远端清单。任何网络或解析问题都返回 null——
-  /// 更新检查必须静默失败，绝不阻塞或打断正常启动。
+  /// 拉取并解析远端清单。先尝试直连，失败后依次尝试加速代理；
+  /// 全部失败返回 null——更新检查必须静默失败，绝不阻塞或打断正常启动。
   Future<AppUpdate?> fetchLatestUpdate() async {
+    final urls = [manifestUrl, for (final p in _proxyPrefixes) '$p$manifestUrl'];
     final client = _clientOverride ?? http.Client();
     try {
-      final response = await client
-          .get(Uri.parse(manifestUrl), headers: {'Accept': 'application/json'})
-          .timeout(_timeout);
-      if (response.statusCode != 200) return null;
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      if (decoded is! Map<String, dynamic>) return null;
-      return AppUpdate.tryParse(decoded);
-    } catch (_) {
+      for (final url in urls) {
+        try {
+          final response = await client
+              .get(Uri.parse(url), headers: {'Accept': 'application/json'})
+              .timeout(_timeout);
+          if (response.statusCode != 200) continue;
+          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          if (decoded is! Map<String, dynamic>) continue;
+          return AppUpdate.tryParse(decoded);
+        } catch (_) {
+          continue;
+        }
+      }
       return null;
     } finally {
       if (_clientOverride == null) client.close();

@@ -111,6 +111,39 @@ void main() {
       expect(update!.version, '1.2.0');
     });
 
+    test('直连失败后自动回退到加速代理', () async {
+      final requestedUrls = <String>[];
+      var callCount = 0;
+      final repo = _repo(
+        MockClient((request) async {
+          requestedUrls.add(request.url.toString());
+          callCount++;
+          if (callCount == 1) {
+            return http.Response('timeout', 500);
+          }
+          return _jsonResponse(_manifestJson);
+        }),
+      );
+      final update = await repo.fetchLatestUpdate();
+      expect(update, isNotNull);
+      expect(update!.version, '1.2.0');
+      expect(requestedUrls.first, UpdateRepository.manifestUrl);
+      expect(requestedUrls.length, 2);
+    });
+
+    test('所有源都失败时返回 null', () async {
+      var callCount = 0;
+      final repo = _repo(
+        MockClient((_) async {
+          callCount++;
+          return http.Response('error', 500);
+        }),
+      );
+      final update = await repo.fetchLatestUpdate();
+      expect(update, isNull);
+      expect(callCount, 3);
+    });
+
     test('非 200、非法 JSON、请求异常都静默返回 null', () async {
       expect(
         await _repo(
