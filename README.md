@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.47.2-blue" alt="Flutter">
-  <img src="https://img.shields.io/badge/Platforms-Android%20%7C%20Web-green" alt="Platforms">
+  <img src="https://img.shields.io/badge/Platforms-Android-green" alt="Platforms">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
 </p>
 
