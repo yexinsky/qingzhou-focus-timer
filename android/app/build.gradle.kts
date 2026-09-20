@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.qingzhou.qingzhou_focus"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
