@@ -1,8 +1,10 @@
 {
   "//": "应用内更新清单：发布新版本时更新 version/buildNumber/releaseNotes/downloadUrl，并同步 pubspec.yaml 的 version 字段。downloadUrls 可按平台（android/ios 等）覆盖 downloadUrl。",
-  "version": "1.1.0",
-  "buildNumber": 2,
-  "releaseNotes": "",
-  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/latest",
-  "downloadUrls": {}
+  "version": "1.2.0",
+  "buildNumber": 3,
+  "releaseNotes": "院校排名与更新检查：内置软科 590 所高校排名、专业代码目录、目标择校倒计时、应用内更新检查、全新品牌图标",
+  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.0",
+  "downloadUrls": {
+    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.0/app-release.apk"
+  }
 }
