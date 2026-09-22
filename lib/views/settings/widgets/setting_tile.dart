@@ -63,7 +63,11 @@ class SettingTile extends StatelessWidget {
         if (showDivider)
           Divider(
             height: 1,
-            color: AppColors.dividerLight.withValues(alpha: 0.5),
+            color:
+                (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.dividerDark
+                        : AppColors.dividerLight)
+                    .withValues(alpha: 0.5),
           ),
       ],
     );

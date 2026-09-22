@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/ambient_sound_service.dart';
 import '../data/repositories/settings_repository.dart';
@@ -126,12 +127,26 @@ class AmbientSoundNotifier extends StateNotifier<AmbientSoundState> {
   Future<void> removeSound(String soundId) async {
     final sound = state.sounds.where((s) => s.id == soundId).firstOrNull;
     if (sound == null) return;
-    await _service.deleteFile(sound);
-    final newSounds = state.sounds.where((s) => s.id != soundId).toList();
     final wasSelected = state.selectedSoundId == soundId;
+    // 先停播再删文件：Windows 上删除正在播放的文件会抛错；
+    // 本方法常在未 await 的按钮回调里调用，异常必须内部消化避免未处理 Zone 错误。
+    if (wasSelected) {
+      try {
+        await _service.stop();
+      } catch (e) {
+        debugPrint('停止氛围音失败（继续移除）：$e');
+      }
+    }
+    try {
+      await _service.deleteFile(sound);
+    } catch (e) {
+      // 删文件失败也要把条目移出列表：宁可残留孤儿文件，不能让 UI 挂着一个
+      // 无法播放的音频。
+      debugPrint('删除氛围音文件失败（仅移出列表）：$e');
+    }
+    final newSounds = state.sounds.where((s) => s.id != soundId).toList();
     state = state.copyWith(sounds: newSounds, clearSelectedSound: wasSelected);
     if (wasSelected) {
-      await _service.stop();
       state = state.copyWith(isPlaying: false);
       await _settingsRepo.setWhiteNoiseSoundId(null);
     }
@@ -168,10 +183,16 @@ class AmbientSoundNotifier extends StateNotifier<AmbientSoundState> {
     }
   }
 
+  /// 拖拽过程专用：只更新内存状态与播放器音量，不逐像素写盘。
+  /// 交互结束（松手/onChangeEnd）时由调用方再触发 [commitVolume] 落盘。
   Future<void> setVolume(double vol) async {
     state = state.copyWith(volume: vol);
     await _service.setVolume(vol);
-    await _settingsRepo.setWhiteNoiseVolume(vol);
+  }
+
+  /// 将当前内存音量写入 SharedPreferences，供滑杆拖拽结束时调用。
+  Future<void> commitVolume() async {
+    await _settingsRepo.setWhiteNoiseVolume(state.volume);
   }
 
   /// 切换循环模式（false 单曲循环 / true 列表循环），播放中则按新模式重启。

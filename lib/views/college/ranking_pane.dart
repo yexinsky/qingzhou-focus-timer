@@ -49,6 +49,7 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
     final categories = ref.watch(universityCategoriesProvider);
     final ranking = rankingAsync.valueOrNull;
     final hasActiveFilter = !filter.isDefault;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CustomScrollView(
       slivers: [
@@ -64,8 +65,10 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
                       : hasActiveFilter
                       ? '已匹配 ${universities.length} / ${ranking.universities.length} 所'
                       : '${ranking.source} · ${ranking.year} · 共 ${ranking.universities.length} 所',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -129,6 +132,7 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
   }
 
   SliverFillRemaining _emptySliver(String message, {VoidCallback? onClear}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -138,12 +142,20 @@ class _RankingPaneState extends ConsumerState<RankingPane> {
             Icon(
               Icons.school_outlined,
               size: 60,
-              color: AppColors.textSecondary.withValues(alpha: .3),
+              color:
+                  (isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary)
+                      .withValues(alpha: .3),
             ),
             const SizedBox(height: 12),
             Text(
               message,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
             ),
             if (onClear != null) ...[
               const SizedBox(height: 8),

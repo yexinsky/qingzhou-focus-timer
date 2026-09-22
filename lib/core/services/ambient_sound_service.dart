@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -31,6 +32,7 @@ class AmbientSound {
 
 class AmbientSoundService {
   final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<PlayerState>? _playerStateSubscription;
   bool _isPlaying = false;
   double _volume = 0.5;
   String? _currentPath;
@@ -38,6 +40,15 @@ class AmbientSoundService {
   bool get isPlaying => _isPlaying;
   String? get currentPath => _currentPath;
   double get volume => _volume;
+
+  AmbientSoundService() {
+    // 播放状态以 just_audio 事件流为唯一事实来源：解码失败等平台侧停止
+    // 不会走我们的 stop()，若无此订阅 _isPlaying 会恒为 true，
+    // 导致 provider 的 autoStartIfEnabled 早退、无法自愈重播。
+    _playerStateSubscription = _player.playerStateStream.listen((playerState) {
+      _isPlaying = playerState.playing;
+    });
+  }
 
   Future<Directory> get _soundsDir async {
     final appDir = await getApplicationDocumentsDirectory();
@@ -79,9 +90,11 @@ class AmbientSoundService {
       await _player.setFilePath(filePath, preload: true);
       await _player.setLoopMode(LoopMode.all);
       await _player.setVolume(_volume);
-      await _player.play();
+      // play() 的 Future 要到停止/播完才完成，状态必须在启动前置标记，
+      // 之后再由 playerStateStream 持续校正，避免事后写回陈旧 true 卡死。
       _isPlaying = true;
       _currentPath = filePath;
+      await _player.play();
     } catch (e) {
       debugPrint('AmbientSoundService.play failed: $e');
       _isPlaying = false;
@@ -104,9 +117,10 @@ class AmbientSoundService {
       );
       await _player.setLoopMode(LoopMode.all);
       await _player.setVolume(_volume);
-      await _player.play();
+      // 同 play()：启动前置标记，真实状态由事件流校正
       _isPlaying = true;
       _currentPath = filePaths[safeIndex];
+      await _player.play();
     } catch (e) {
       debugPrint('AmbientSoundService.playList failed: $e');
       _isPlaying = false;
@@ -129,6 +143,9 @@ class AmbientSoundService {
   }
 
   void dispose() {
+    // 先取消订阅再释放播放器，避免关闭竞态产生未处理的流错误
+    _playerStateSubscription?.cancel();
+    _playerStateSubscription = null;
     _player.dispose();
   }
 }

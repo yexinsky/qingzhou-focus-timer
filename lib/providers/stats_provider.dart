@@ -23,7 +23,7 @@ class StatsNotifier {
   StatsNotifier(this._taskRepo, {DateTime Function()? now})
     : _now = now ?? DateTime.now;
 
-  DailyStats getTodayStats() => _statsForDate(_now());
+  DailyStats getTodayStats() => _statsForDate(_now(), _groupSessionsByDate());
 
   List<DailyStats> getWeekStats() {
     final now = _dateOnly(_now());
@@ -50,20 +50,38 @@ class StatsNotifier {
     return _statsForRange(alignedStart, dayCount);
   }
 
-  DailyStats getStatsForDate(DateTime date) => _statsForDate(date);
+  DailyStats getStatsForDate(DateTime date) =>
+      _statsForDate(date, _groupSessionsByDate());
 
   List<FocusSession> getRecentSessions({int limit = 10}) =>
       _taskRepo.getRecentSessions(limit: limit);
 
-  List<DailyStats> _statsForRange(DateTime start, int dayCount) =>
-      List.generate(
-        dayCount,
-        (index) => _statsForDate(start.add(Duration(days: index))),
-      );
+  /// 一次全表扫描按 dateKey 分组，替代逐日 getSessionsByDate 的 N+1 全量扫描
+  /// （getYearStats 一年约 370 次日查询 → 1 次遍历）。
+  /// getAllSessions 已按 startTime 倒序，分组后每个日期内仍保持倒序。
+  Map<String, List<FocusSession>> _groupSessionsByDate() {
+    final grouped = <String, List<FocusSession>>{};
+    for (final session in _taskRepo.getAllSessions()) {
+      if (session.type != 'focus') continue;
+      grouped.putIfAbsent(session.dateKey, () => []).add(session);
+    }
+    return grouped;
+  }
 
-  DailyStats _statsForDate(DateTime date) {
+  List<DailyStats> _statsForRange(DateTime start, int dayCount) {
+    final grouped = _groupSessionsByDate();
+    return List.generate(
+      dayCount,
+      (index) => _statsForDate(start.add(Duration(days: index)), grouped),
+    );
+  }
+
+  DailyStats _statsForDate(
+    DateTime date,
+    Map<String, List<FocusSession>> sessionsByDateKey,
+  ) {
     final dateKey = _dateKey(date);
-    final sessions = _taskRepo.getSessionsByDate(dateKey);
+    final sessions = sessionsByDateKey[dateKey] ?? const <FocusSession>[];
     final subjectSeconds = <String, int>{};
     var totalSeconds = 0;
     var completedPomodoros = 0;

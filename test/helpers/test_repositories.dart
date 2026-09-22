@@ -26,6 +26,23 @@ class TestTaskRepository extends TaskRepository {
       .length;
 
   @override
+  Map<String, int> getFocusCountByTaskId() {
+    final counts = <String, int>{};
+    for (final session in sessions.values) {
+      final taskId = session.taskId;
+      if (session.type == 'focus' && taskId != null) {
+        counts[taskId] = (counts[taskId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  @override
+  List<FocusSession> getAllSessions() =>
+      sessions.values.toList()
+        ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+  @override
   Future<void> postponeTask(String taskId, String dateKey) async {
     final task = tasks[taskId];
     if (task != null)

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import '../data/models/task.dart';
 import '../data/models/focus_session.dart';
 import '../data/repositories/task_repository.dart';
@@ -102,7 +101,6 @@ class TimerNotifier extends StateNotifier<TimerStateData>
   final TaskRepository _taskRepo;
   final SettingsRepository _settingsRepo;
   final DateTime Function() _now;
-  final Uuid _uuid;
   final SessionFeedbackService? _feedbackService;
   final ScreenKeepAliveService? _keepAlive;
   final void Function()? _onSessionRecorded;
@@ -115,12 +113,10 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     this._taskRepo,
     this._settingsRepo, {
     DateTime Function()? now,
-    Uuid? uuid,
     SessionFeedbackService? feedbackService,
     ScreenKeepAliveService? keepAlive,
     void Function()? onSessionRecorded,
   }) : _now = now ?? DateTime.now,
-       _uuid = uuid ?? const Uuid(),
        _feedbackService = feedbackService,
        _keepAlive = keepAlive,
        _onSessionRecorded = onSessionRecorded,
@@ -369,12 +365,14 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _completing = true;
     _timer?.cancel();
     state = state.copyWith(timeLeft: 0, state: TimerState.completed);
-    await _persistSnapshot();
     // 预排提醒已在结束时刻由系统送达（或已过期望时刻），这里撤销避免残留
     await _cancelEndReminder();
+    // 会话落库成功后才写 completed 快照：若在两者之间被杀进程，磁盘快照仍是
+    // running + 已过的结束时刻，重启后墙钟校时会立即重新触发完成，避免丢单；
+    // 会话 id 由开始时间派生，重触发时覆盖同一条记录，不会重复计数。
     if (state.sessionType == SessionType.focus && _startedAt != null) {
       final session = FocusSession(
-        id: _uuid.v4(),
+        id: 'focus-countdown-${_startedAt!}',
         taskId: state.currentTask?.id,
         taskTitle: state.currentTask?.title ?? state.currentSubject,
         subject: state.currentTask?.subject ?? state.currentSubject ?? '其他',
@@ -384,15 +382,25 @@ class TimerNotifier extends StateNotifier<TimerStateData>
         timerMode: 'countdown',
         dateKey: _dateKey(DateTime.fromMillisecondsSinceEpoch(_startedAt!)),
       );
-      await _taskRepo.addSession(session);
-      _onSessionRecorded?.call();
-      state = state.copyWith(completedSessions: state.completedSessions + 1);
+      // 落库失败不卡死计时器：记录日志后继续走完清理，损失单条专注记录。
+      try {
+        await _taskRepo.addSession(session);
+        _onSessionRecorded?.call();
+        state = state.copyWith(completedSessions: state.completedSessions + 1);
+      } catch (e) {
+        debugPrint('专注会话落库失败，本次专注记录丢失：$e');
+      }
     }
-    await _feedbackService?.notifySessionCompleted(
-      isFocusSession: state.sessionType == SessionType.focus,
-      notificationsEnabled: _settingsRepo.notificationEnabled,
-      vibrationEnabled: _settingsRepo.vibrationEnabled,
-    );
+    await _persistSnapshot();
+    try {
+      await _feedbackService?.notifySessionCompleted(
+        isFocusSession: state.sessionType == SessionType.focus,
+        notificationsEnabled: _settingsRepo.notificationEnabled,
+        vibrationEnabled: _settingsRepo.vibrationEnabled,
+      );
+    } catch (e) {
+      debugPrint('会话完成反馈失败：$e');
+    }
     _startedAt = null;
     _endsAt = null;
     _completing = false;
@@ -473,7 +481,7 @@ class TimerNotifier extends StateNotifier<TimerStateData>
     _completing = true;
     _timer?.cancel();
     final session = FocusSession(
-      id: _uuid.v4(),
+      id: 'focus-stopwatch-${_startedAt!}',
       taskId: state.currentTask?.id,
       taskTitle: state.currentTask?.title ?? state.currentSubject,
       subject: state.currentTask?.subject ?? state.currentSubject ?? '其他',
@@ -483,7 +491,15 @@ class TimerNotifier extends StateNotifier<TimerStateData>
       timerMode: 'stopwatch',
       dateKey: _dateKey(DateTime.fromMillisecondsSinceEpoch(_startedAt!)),
     );
-    await _taskRepo.addSession(session);
+    // 落库失败时保留会话现场并返回 false：不清快照、不重置 _completing 之外的
+    // 运行状态，用户可再次点击结束重试，避免静默丢失灵活时长记录。
+    try {
+      await _taskRepo.addSession(session);
+    } catch (e) {
+      debugPrint('灵活专注会话落库失败：$e');
+      _completing = false;
+      return false;
+    }
     _onSessionRecorded?.call();
     _timer?.cancel();
     _startedAt = null;

@@ -173,6 +173,14 @@ class _MarkDialogState extends State<_MarkDialog> {
       note = TextEditingController(),
       reason = TextEditingController();
   int severity = 2;
+
+  @override
+  void dispose() {
+    keyword.dispose();
+    note.dispose();
+    reason.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('刚才卡在哪里？'),

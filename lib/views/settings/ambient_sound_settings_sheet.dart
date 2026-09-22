@@ -296,6 +296,10 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             onChanged: (value) {
               ref.read(ambientSoundProvider.notifier).setVolume(value);
             },
+            // 拖拽过程只更新内存音量，松手后再写入 SharedPreferences。
+            onChangeEnd: (_) {
+              ref.read(ambientSoundProvider.notifier).commitVolume();
+            },
           ),
         ),
       ],

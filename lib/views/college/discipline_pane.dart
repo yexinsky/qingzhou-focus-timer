@@ -46,6 +46,7 @@ class _DisciplinePaneState extends ConsumerState<DisciplinePane> {
     final query = ref.watch(disciplineQueryProvider).trim();
     final catalog = catalogAsync.valueOrNull;
     final filterActive = query.isNotEmpty || categoryCode != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CustomScrollView(
       slivers: [
@@ -60,8 +61,10 @@ class _DisciplinePaneState extends ConsumerState<DisciplinePane> {
                       ? '数据加载中…'
                       : '${catalog.source} · ${catalog.edition} 年版 · '
                             '共 ${catalog.totalCount} 项',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -172,6 +175,10 @@ class _DisciplinePaneState extends ConsumerState<DisciplinePane> {
   }
 
   SliverFillRemaining _emptySliver(String message, {VoidCallback? onClear}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondary;
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -181,13 +188,10 @@ class _DisciplinePaneState extends ConsumerState<DisciplinePane> {
             Icon(
               Icons.menu_book_outlined,
               size: 60,
-              color: AppColors.textSecondary.withValues(alpha: .3),
+              color: secondary.withValues(alpha: .3),
             ),
             const SizedBox(height: 12),
-            Text(
-              message,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
+            Text(message, style: TextStyle(color: secondary)),
             if (onClear != null) ...[
               const SizedBox(height: 8),
               TextButton(onPressed: onClear, child: const Text('清除筛选条件')),

@@ -91,45 +91,61 @@ class SessionFeedbackService {
   }
 
   /// 在计时结束时刻预排系统通知，进程被杀或退后台后仍会准点送达。
+  /// 调用方以 unawaited 触发，缺闹钟权限/时区解析失败等异常必须在此吞掉，
+  /// 否则会沦为未处理的 Zone 错误（与 AmbientSoundService 的容错风格一致）。
   Future<void> scheduleSessionEndReminder({
     required int endAtMillis,
     required bool isFocusSession,
   }) async {
     if (kIsWeb) return;
-    await initialize();
-    await _notifications.zonedSchedule(
-      _reminderId,
-      isFocusSession ? '专注完成' : '休息结束',
-      isFocusSession ? '做得很好，休息一下再继续。' : '准备好后，开始下一轮专注吧。',
-      tz.TZDateTime.from(
-        DateTime.fromMillisecondsSinceEpoch(endAtMillis),
-        tz.local,
-      ),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-          enableVibration: true,
-          category: AndroidNotificationCategory.alarm,
+    try {
+      await initialize();
+      await _notifications.zonedSchedule(
+        _reminderId,
+        isFocusSession ? '专注完成' : '休息结束',
+        isFocusSession ? '做得很好，休息一下再继续。' : '准备好后，开始下一轮专注吧。',
+        tz.TZDateTime.from(
+          DateTime.fromMillisecondsSinceEpoch(endAtMillis),
+          tz.local,
         ),
-        iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
-        macOS: DarwinNotificationDetails(presentSound: true),
-      ),
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: _exactAlarmsAllowed
-          ? AndroidScheduleMode.exactAllowWhileIdle
-          : AndroidScheduleMode.inexactAllowWhileIdle,
-    );
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            enableVibration: true,
+            category: AndroidNotificationCategory.alarm,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: true,
+            presentAlert: true,
+          ),
+          macOS: DarwinNotificationDetails(presentSound: true),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: _exactAlarmsAllowed
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint(
+        'SessionFeedbackService.scheduleSessionEndReminder failed: $e',
+      );
+    }
   }
 
   /// 撤销预排的到点提醒（暂停 / 放弃 / 手动结束 / 已完成时调用）。
+  /// 同样经 unawaited 调用，平台通道异常在内部记录，不外抛。
   Future<void> cancelSessionEndReminder() async {
     if (kIsWeb) return;
-    await _notifications.cancel(_reminderId);
+    try {
+      await _notifications.cancel(_reminderId);
+    } catch (e) {
+      debugPrint('SessionFeedbackService.cancelSessionEndReminder failed: $e');
+    }
   }
 
   /// 计时完成时的触感反馈；系统通知由预排提醒负责准点送达，这里不再重复发送。

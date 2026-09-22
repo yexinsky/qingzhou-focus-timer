@@ -20,6 +20,12 @@ import '../../providers/update_provider.dart';
 import 'ambient_sound_settings_sheet.dart';
 import 'widgets/setting_tile.dart';
 
+// 版本信息在应用生命周期内不变：惰性缓存 future，避免 SettingsView 每次重建
+// 都新建 FutureBuilder future 导致页脚版本号闪烁。
+Future<PackageInfo>? _packageInfoFuture;
+Future<PackageInfo> get _packageInfo =>
+    _packageInfoFuture ??= PackageInfo.fromPlatform();
+
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
 
@@ -344,7 +350,7 @@ class SettingsView extends ConsumerWidget {
   );
 
   Widget _footer(BuildContext context) => FutureBuilder<PackageInfo>(
-    future: PackageInfo.fromPlatform(),
+    future: _packageInfo,
     builder: (_, snapshot) {
       final version = snapshot.hasData
           ? '${snapshot.data!.version}+${snapshot.data!.buildNumber}'

@@ -54,6 +54,9 @@ class UpdateDialog extends ConsumerStatefulWidget {
 
 class _UpdateDialogState extends ConsumerState<UpdateDialog> {
   bool _skipChecked = false;
+  // 缓存 future，避免弹窗每次重建都重取 PackageInfo 造成版本号闪烁。
+  late final Future<PackageInfo> _packageInfoFuture =
+      PackageInfo.fromPlatform();
 
   void _toggleSkip(bool? value) {
     setState(() => _skipChecked = value ?? false);
@@ -101,7 +104,7 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FutureBuilder<PackageInfo>(
-                future: PackageInfo.fromPlatform(),
+                future: _packageInfoFuture,
                 builder: (_, snapshot) {
                   final current = snapshot.hasData
                       ? '（当前版本 v${snapshot.data!.version}）'

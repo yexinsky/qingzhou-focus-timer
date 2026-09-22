@@ -19,17 +19,22 @@ class QingzhouApp extends ConsumerStatefulWidget {
 
 class _QingzhouAppState extends ConsumerState<QingzhouApp> {
   bool _updateDialogShowing = false;
+  String? _lastPoppedUpdateVersion;
   Timer? _updateCheckTimer;
 
   @override
   void initState() {
     super.initState();
-    // 自动检查到新版本时在根导航上弹窗；同一版本每次启动只弹一次。
+    // 自动检查到新版本时在根导航上弹窗；available 命中后会驻留状态，
+    // 因此仅当版本号相对上次发生变化才弹窗——否则手动"检查更新"引起的
+    // checking 状态变更会用旧 available 重复弹窗，与手动检查自己的弹窗叠加。
     ref.listenManual<UpdateState>(updateProvider, (_, next) {
       final update = next.available;
       if (update == null || _updateDialogShowing) return;
+      if (_lastPoppedUpdateVersion == update.version) return;
       final dialogContext = rootNavigatorKey.currentContext;
       if (dialogContext == null) return;
+      _lastPoppedUpdateVersion = update.version;
       _updateDialogShowing = true;
       showUpdateDialog(dialogContext, update).whenComplete(() {
         _updateDialogShowing = false;

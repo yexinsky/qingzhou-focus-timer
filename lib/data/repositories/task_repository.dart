@@ -63,6 +63,20 @@ class TaskRepository {
       .where((session) => session.type == 'focus' && session.taskId == taskId)
       .length;
 
+  /// 一次遍历得到各任务的专注次数映射（taskId → 次数），
+  /// 供列表页批量取用，避免逐卡调用 getTaskFocusCount 造成 N+1 全表扫描。
+  /// 未挂任务的专注记录（taskId 为 null）不计入。
+  Map<String, int> getFocusCountByTaskId() {
+    final counts = <String, int>{};
+    for (final session in _sessionBox.values) {
+      final taskId = session.taskId;
+      if (session.type == 'focus' && taskId != null) {
+        counts[taskId] = (counts[taskId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   Future<void> addTask(Task task) => _taskBox.put(task.id, task);
   Future<void> updateTask(Task task) => _taskBox.put(task.id, task);
   Future<void> deleteTask(String taskId) => _taskBox.delete(taskId);

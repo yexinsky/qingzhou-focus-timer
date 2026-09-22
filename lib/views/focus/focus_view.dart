@@ -31,10 +31,22 @@ class _FocusViewState extends ConsumerState<FocusView>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    // 页面挂载时计时可能已在运行（如快照恢复），按当前状态起停呼吸动画。
+    _syncPulse(ref.read(timerProvider).state);
+  }
+
+  /// 呼吸动画仅计时运行中播放，其余状态停掉常驻 Ticker 以省电并允许 settle。
+  void _syncPulse(TimerState state) {
+    final shouldPulse = state == TimerState.running;
+    if (shouldPulse && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!shouldPulse && _pulseController.isAnimating) {
+      _pulseController.stop();
+    }
   }
 
   @override
@@ -83,6 +95,7 @@ class _FocusViewState extends ConsumerState<FocusView>
   @override
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
+    _syncPulse(timerState.state);
     final settings = ref.watch(settingsProvider);
     final preferences = ref.watch(collegePreferenceProvider);
     final countdown = ref.watch(examCountdownProvider);
@@ -377,6 +390,7 @@ class _FocusViewState extends ConsumerState<FocusView>
   ) {
     final durations = [25, 45, 60, 90];
     final currentMinutes = timerState.totalTime ~/ 60;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -399,10 +413,13 @@ class _FocusViewState extends ConsumerState<FocusView>
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? (Theme.of(context).brightness == Brightness.dark
+                        ? (isDark
                               ? AppColors.primaryDark
                               : AppColors.primaryLight)
-                        : AppColors.dividerLight.withValues(alpha: 0.5),
+                        : (isDark
+                                  ? AppColors.dividerDark
+                                  : AppColors.dividerLight)
+                              .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -410,7 +427,11 @@ class _FocusViewState extends ConsumerState<FocusView>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary),
                     ),
                   ),
                 ),
@@ -544,7 +565,10 @@ class _ControlButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isPrimary
               ? (primaryColor ?? AppColors.primaryLight)
-              : AppColors.dividerLight.withValues(alpha: 0.5),
+              : (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.dividerDark
+                        : AppColors.dividerLight)
+                    .withValues(alpha: 0.5),
           shape: BoxShape.circle,
           boxShadow: isPrimary
               ? [

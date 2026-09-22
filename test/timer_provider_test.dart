@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qingzhou_focus/core/services/session_feedback_service.dart';
+import 'package:qingzhou_focus/data/models/focus_session.dart';
 import 'package:qingzhou_focus/data/models/task.dart';
 import 'package:qingzhou_focus/data/repositories/settings_repository.dart';
 import 'package:qingzhou_focus/providers/timer_provider.dart';
@@ -27,6 +28,20 @@ class _RecordingFeedback implements SessionFeedbackService {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// 模拟 Hive 落库失败（前 [failCount] 次抛异常）：验证存储错误不卡死计时器。
+class _FailingSessionRepository extends TestTaskRepository {
+  int failCount = 0;
+
+  @override
+  Future<void> addSession(FocusSession session) async {
+    if (failCount > 0) {
+      failCount--;
+      throw StateError('simulated storage failure');
+    }
+    await super.addSession(session);
+  }
 }
 
 void main() {
@@ -295,4 +310,87 @@ void main() {
     expect(notifier.state.state, TimerState.running);
     expect(notifier.state.totalTime, 75);
   });
+
+  test(
+    'countdown completion records session then leaves timer usable',
+    () async {
+      var clock = DateTime(2026, 9, 6, 10);
+      final notifier = await createNotifier(now: () => clock);
+      addTearDown(notifier.dispose);
+      notifier.setDuration(1);
+      notifier.selectSubject('数学');
+      notifier.startTimer();
+      clock = clock.add(const Duration(seconds: 61));
+      // 借暂停触发墙钟校时，检测到归零即走完成流程
+      notifier.pauseTimer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final session = taskRepository.sessions.values.single;
+      expect(session.duration, 60);
+      expect(session.subject, '数学');
+      expect(session.type, 'focus');
+      expect(notifier.state.state, TimerState.completed);
+      expect(notifier.state.completedSessions, 1);
+      // 完成后计时器可用：短休切换正常
+      notifier.startBreak();
+      expect(notifier.state.sessionType, SessionType.shortBreak);
+    },
+  );
+
+  test('session persistence failure does not wedge the timer', () async {
+    var clock = DateTime(2026, 9, 6, 10);
+    SharedPreferences.setMockInitialValues({'focus_duration': 1});
+    settingsRepository = SettingsRepository();
+    await settingsRepository.init();
+    final repository = _FailingSessionRepository()..failCount = 1;
+    final notifier = TimerNotifier(
+      repository,
+      settingsRepository,
+      now: () => clock,
+    );
+    addTearDown(notifier.dispose);
+    notifier.startTimer();
+    clock = clock.add(const Duration(seconds: 61));
+    notifier.pauseTimer();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    // 首次落库失败：不记会话，但状态机走到 completed、未卡死
+    expect(repository.sessions, isEmpty);
+    expect(notifier.state.state, TimerState.completed);
+    expect(notifier.state.completedSessions, 0);
+    // 切回专注二轮完成：证明 _completing 已复位，计时器可继续工作
+    notifier.switchToFocus(startImmediately: true);
+    expect(notifier.state.state, TimerState.running);
+    clock = clock.add(const Duration(seconds: 61));
+    notifier.pauseTimer();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(repository.sessions.length, 1);
+    expect(notifier.state.completedSessions, 1);
+  });
+
+  test(
+    'finish session retry recovers after a transient persistence failure',
+    () async {
+      var clock = DateTime(2026, 9, 6, 10);
+      SharedPreferences.setMockInitialValues({});
+      settingsRepository = SettingsRepository();
+      await settingsRepository.init();
+      final repository = _FailingSessionRepository()..failCount = 1;
+      final notifier = TimerNotifier(
+        repository,
+        settingsRepository,
+        now: () => clock,
+      );
+      addTearDown(notifier.dispose);
+      notifier.setFocusTimerMode(FocusTimerMode.stopwatch);
+      notifier.startTimer();
+      clock = clock.add(const Duration(seconds: 30));
+      // 落库失败返回 false：保留会话现场等待重试，不静默丢单
+      expect(await notifier.finishFlexibleSession(), isFalse);
+      expect(repository.sessions, isEmpty);
+      expect(notifier.state.state, TimerState.running);
+      clock = clock.add(const Duration(seconds: 5));
+      expect(await notifier.finishFlexibleSession(), isTrue);
+      expect(repository.sessions.values.single.duration, 35);
+      expect(notifier.state.state, TimerState.idle);
+    },
+  );
 }

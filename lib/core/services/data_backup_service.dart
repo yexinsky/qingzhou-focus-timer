@@ -32,7 +32,10 @@ class DataBackupService {
   final TaskRepository _repository;
   final FeynmanRepository? _feynmanRepository;
   final DateTime Function() _now;
-  Future<File> exportToFile() async {
+
+  /// 组装备份 JSON 内容（v2 格式：含 feynmanUnits/stumbleMarks）。
+  /// 与写盘分离，便于导出文件与数据层测试复用同一份序列化逻辑。
+  String exportToJson() {
     final data = <String, dynamic>{
       'format': 'qingzhou-backup',
       'version': 2,
@@ -47,15 +50,16 @@ class DataBackupService {
           .map((item) => item.toJson())
           .toList(),
     };
+    return const JsonEncoder.withIndent('  ').convert(data);
+  }
+
+  Future<File> exportToFile() async {
     final directory = await getApplicationDocumentsDirectory();
     final stamp = _now().toIso8601String().replaceAll(RegExp(r'[:.]'), '-');
     final file = File(
       '${directory.path}${Platform.pathSeparator}qingzhou-backup-$stamp.json',
     );
-    return file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(data),
-      flush: true,
-    );
+    return file.writeAsString(exportToJson(), flush: true);
   }
 
   Future<BackupSummary> importFromFile(File file) async =>
@@ -68,7 +72,10 @@ class DataBackupService {
       throw const FormatException('不是有效的轻舟备份文件');
     }
     final version = decoded['version'];
-    if (version != 1) throw FormatException('不支持的备份版本：$version');
+    // 导出格式自 v2 起始终写 version:2，白名单必须同时接受历史 v1 与当前 v2，
+    // 否则本应用自产的备份 100% 无法导回，数据逃生通道失效。
+    if (version != 1 && version != 2)
+      throw FormatException('不支持的备份版本：$version');
     final rawTasks = decoded['tasks'];
     final rawSessions = decoded['sessions'];
     if (rawTasks is! List || rawSessions is! List) {

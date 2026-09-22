@@ -431,7 +431,7 @@ class _AddMilestoneSheetState extends State<_AddMilestoneSheet> {
       firstDate: now,
       lastDate: DateTime(now.year + 3, 12, 31),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null && mounted) setState(() => _date = picked);
   }
 
   @override

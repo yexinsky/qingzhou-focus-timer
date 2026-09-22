@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/task.dart';
 import '../../../providers/ambient_sound_provider.dart';
-import '../../../providers/task_provider.dart';
+import '../../../providers/stats_provider.dart';
+import '../../../providers/timer_provider.dart';
 import '../../../providers/subject_provider.dart';
 import '../../settings/ambient_sound_settings_sheet.dart';
 import '../../widgets/subject_manage_sheet.dart';
@@ -20,9 +21,14 @@ class TaskSelectorSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(tasksProvider);
+    // "今日待办"固定取今日任务：tasksProvider 绑定计划页所选日期，
+    // 计划页翻到其他日期后专注页选择器会显示错误日期的任务。
+    // statsRefreshProvider 在任务/会话变化时自增，作为刷新信号。
+    ref.watch(statsRefreshProvider);
+    final incompleteTasks = ref
+        .watch(taskRepositoryProvider)
+        .getIncompleteTasks();
     final subjects = ref.watch(subjectsProvider);
-    final incompleteTasks = tasks.where((t) => !t.completed).toList();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(

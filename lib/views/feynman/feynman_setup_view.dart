@@ -15,6 +15,15 @@ class _State extends ConsumerState<FeynmanSetupView> {
       chapter = TextEditingController(),
       topic = TextEditingController();
   int input = 20, output = 10;
+
+  @override
+  void dispose() {
+    title.dispose();
+    subject.dispose();
+    chapter.dispose();
+    topic.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext c) => Scaffold(
     appBar: AppBar(title: const Text('费曼学习')),

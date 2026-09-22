@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/daily_goal_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../data/models/task.dart';
@@ -84,9 +85,15 @@ class _PlanViewState extends ConsumerState<PlanView> {
     final tasks = ref.watch(tasksProvider);
     final selected = ref.watch(selectedPlanDateProvider);
     final markedDates = ref.watch(monthTaskDateKeysProvider);
+    // 监听统计失效计数：专注会话落库后据此刷新计数（原 ref.read 非响应式，计数停留在旧值）。
+    ref.watch(statsRefreshProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final open = tasks.where((t) => !t.completed).toList();
     final done = tasks.where((t) => t.completed).toList();
+    // 一次遍历会话得到 taskId→专注数映射，避免逐卡全扫会话（O(tasks×sessions)）。
+    final focusCounts = ref
+        .watch(taskRepositoryProvider)
+        .getFocusCountByTaskId();
 
     Widget card(Task task) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -94,7 +101,7 @@ class _PlanViewState extends ConsumerState<PlanView> {
         onTap: task.completed ? null : () => _start(task),
         child: TaskCard(
           task: task,
-          actualPomodoros: ref.read(tasksProvider.notifier).focusCount(task.id),
+          actualPomodoros: focusCounts[task.id] ?? 0,
           onComplete: () =>
               ref.read(tasksProvider.notifier).completeTask(task.id),
           onDelete: () => ref.read(tasksProvider.notifier).deleteTask(task.id),

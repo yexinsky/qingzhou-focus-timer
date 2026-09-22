@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/daily_goal_provider.dart';
 import '../../../providers/task_provider.dart';
 
 /// 自建中文月历：替换英文的 showDatePicker 与"今天/明天/选日期"分段按钮。
@@ -35,7 +36,6 @@ class MonthCalendar extends ConsumerStatefulWidget {
 
 class _MonthCalendarState extends ConsumerState<MonthCalendar> {
   late PageController _controller;
-  late int _initialPage;
   late int _headerPage;
 
   static const _totalMonths = 2400; // 2020-01 起 200 年
@@ -52,12 +52,21 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
 
   static int _pageOf(DateTime d) => (d.year - 2020) * 12 + d.month - 1;
 
+  /// 'yyyy-MM' → 页索引；非法输入返回 null。
+  static int? _pageOfMonthKey(String key) {
+    final parts = key.split('-');
+    if (parts.length != 2) return null;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null || month < 1 || month > 12) return null;
+    return _pageOf(DateTime(year, month));
+  }
+
   @override
   void initState() {
     super.initState();
-    _initialPage = _pageOf(widget.selectedDate);
-    _headerPage = _initialPage;
-    _controller = PageController(initialPage: _initialPage);
+    _headerPage = _pageOf(widget.selectedDate);
+    _controller = PageController(initialPage: _headerPage);
   }
 
   @override
@@ -75,18 +84,24 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     );
   }
 
+  /// 响应外部翻月请求；已在该月或控制器未挂载时忽略。
+  void _showMonth(int target) {
+    if (!_controller.hasClients) return;
+    final page = target.clamp(0, _totalMonths - 1);
+    if (page == _headerPage) return;
+    setState(() => _headerPage = page);
+    _animateTo(page);
+  }
+
   @override
   void didUpdateWidget(MonthCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_pageOf(widget.selectedDate) != _initialPage &&
-        _controller.hasClients &&
-        (_controller.page == null ||
-            _controller.page!.round() == _initialPage)) {
-      // 外部切换月份（如点击"回今天"）时同步翻页
-      _initialPage = _pageOf(widget.selectedDate);
-      setState(() => _headerPage = _initialPage);
-      _animateTo(_initialPage);
+    // 只有外部改选了日期才跟随翻月：滑动不改 selectedDate，不能被误判为
+    // "外部切换"——旧实现用 _initialPage 作锚，滑动后会把页面弹回选中月份。
+    if (_dayOnly(oldWidget.selectedDate) == _dayOnly(widget.selectedDate)) {
+      return;
     }
+    _showMonth(_pageOf(widget.selectedDate));
   }
 
   Widget _monthView(int page) {
@@ -221,6 +236,16 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
 
   @override
   Widget build(BuildContext context) {
+    // plan 页把当前浏览月份写入 calendarMonthProvider（滑动时回写）。外部改该
+    // provider（如点"今天"）时在此跟随翻页；以 _headerPage 作守卫，滑动自身的
+    // 回写（onPageChanged 已先更新 _headerPage）必然 no-op，不会打断滑动。
+    // 仅监听会回写月份的实例，表单内的纯日期选择实例不受影响。
+    if (widget.onMonthChanged != null) {
+      ref.listen<String>(calendarMonthProvider, (_, monthKey) {
+        final target = _pageOfMonthKey(monthKey);
+        if (target != null) _showMonth(target);
+      });
+    }
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark
         ? AppColors.textSecondaryDark
