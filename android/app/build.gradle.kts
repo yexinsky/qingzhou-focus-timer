@@ -42,6 +42,8 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // 应用内更新安装 APK 需要 androidx.core.content.FileProvider（编译期依赖）
+    implementation("androidx.core:core:1.13.1")
 }
 flutter {
     source = "../.."

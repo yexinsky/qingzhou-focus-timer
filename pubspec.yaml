@@ -31,9 +31,10 @@ dependencies:
 
   # 图标
 
-  # 应用内更新检查
+  # 应用内更新检查与安装
   http: ^1.2.0
   url_launcher: ^6.3.0
+  crypto: ^3.0.6
 
   # 音频
   just_audio: ^0.9.40

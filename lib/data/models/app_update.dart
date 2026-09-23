@@ -6,6 +6,7 @@ class AppUpdate {
     this.releaseNotes = '',
     this.downloadUrl = '',
     this.downloadUrls = const {},
+    this.sha256 = '',
   });
 
   final String version;
@@ -20,6 +21,10 @@ class AppUpdate {
 
   /// 按平台覆盖下载地址，键为 Platform.operatingSystem（android / ios / …）。
   final Map<String, String> downloadUrls;
+
+  /// APK 的 SHA-256（十六进制，大小写不敏感）。清单提供时，
+  /// 应用内下载完成后会校验，不通过则拒绝安装。
+  final String sha256;
 
   /// 解析失败（缺 version 或没有任何下载地址）时返回 null，由调用方静默忽略。
   static AppUpdate? tryParse(Map<String, dynamic> json) {
@@ -44,6 +49,7 @@ class AppUpdate {
       releaseNotes: (json['releaseNotes'] ?? '').toString(),
       downloadUrl: downloadUrl,
       downloadUrls: Map.unmodifiable(platformUrls),
+      sha256: (json['sha256'] ?? '').toString().trim(),
     );
   }
 
