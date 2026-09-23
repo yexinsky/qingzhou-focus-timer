@@ -1,11 +1,11 @@
 {
   "//": "应用内更新清单：发布新版本时更新 version/buildNumber/releaseNotes/downloadUrl/sha256，并同步 pubspec.yaml 的 version 字段。downloadUrls 可按平台（android/ios 等）覆盖 downloadUrl。",
   "version": "1.2.5",
-  "buildNumber": 8,
-  "releaseNotes": "新增应用内更新：检测到新版本后可直接在应用内下载并调起系统安装器，无需跳浏览器；下载显示进度、可随时取消，失败可改用浏览器下载",
+  "buildNumber": 9,
+  "releaseNotes": "应用内更新联调验证包：同一份代码，仅构建号 +1，用于在真机上验证应用内下载与系统安装器安装流程",
   "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.5",
   "downloadUrls": {
-    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.5/qingzhou-focus-v1.2.5.apk"
+    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.5/qingzhou-focus-v1.2.5-build9.apk"
   },
-  "sha256": "81e220b3db50e82e901122dd6da508d0b53209a6910b18a857d2dae3a69d6e3d"
+  "sha256": "d82a3d9ca60c1f27ec03b0aaf4e68435292efff06688ca36e51e6f8830262fa5"
 }
