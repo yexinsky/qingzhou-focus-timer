@@ -5,7 +5,7 @@
   "releaseNotes": "应用内更新联调验证包：同一份代码，仅构建号 +1，用于在真机上验证应用内下载与系统安装器安装流程",
   "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.5",
   "downloadUrls": {
-    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.5/qingzhou-focus-v1.2.5-build9.apk"
+    "android": "http://127.0.0.1:8000/qingzhou-focus-v1.2.5-build9.apk"
   },
   "sha256": "d82a3d9ca60c1f27ec03b0aaf4e68435292efff06688ca36e51e6f8830262fa5"
 }
