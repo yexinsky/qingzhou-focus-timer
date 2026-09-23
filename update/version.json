@@ -1,10 +1,11 @@
 {
-  "//": "应用内更新清单：发布新版本时更新 version/buildNumber/releaseNotes/downloadUrl，并同步 pubspec.yaml 的 version 字段。downloadUrls 可按平台（android/ios 等）覆盖 downloadUrl。",
-  "version": "1.2.4",
-  "buildNumber": 7,
-  "releaseNotes": "修复备份无法导回、专注记录可能丢单或重复、月历翻月被弹回、更新提示重复弹出、今日待办错绑日期等问题；统计与计划页性能优化，深色模式配色修正",
-  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.4",
+  "//": "应用内更新清单：发布新版本时更新 version/buildNumber/releaseNotes/downloadUrl/sha256，并同步 pubspec.yaml 的 version 字段。downloadUrls 可按平台（android/ios 等）覆盖 downloadUrl。",
+  "version": "1.2.5",
+  "buildNumber": 8,
+  "releaseNotes": "新增应用内更新：检测到新版本后可直接在应用内下载并调起系统安装器，无需跳浏览器；下载显示进度、可随时取消，失败可改用浏览器下载",
+  "downloadUrl": "https://github.com/yexinsky/qingzhou-focus-timer/releases/tag/v1.2.5",
   "downloadUrls": {
-    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.4/qingzhou-focus-v1.2.4.apk"
-  }
+    "android": "https://github.com/yexinsky/qingzhou-focus-timer/releases/download/v1.2.5/qingzhou-focus-v1.2.5.apk"
+  },
+  "sha256": "81e220b3db50e82e901122dd6da508d0b53209a6910b18a857d2dae3a69d6e3d"
 }
