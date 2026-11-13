@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # 固定版本：与 README 声明的开发版本一致。不锁定会跟随 stable 漂移，
+          # 上游把 package:flutter/material.dart 标记为 deprecated 后，
+          # --fatal-infos 会把全部 import 判成 info 级错误。
+          flutter-version: 3.47.2
           channel: stable
           cache: true
       - name: Resolve dependencies
@@ -52,6 +56,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.47.2
           channel: stable
           cache: true
       - name: Resolve dependencies
