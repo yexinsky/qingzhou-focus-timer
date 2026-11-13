@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/constants/motivational_quotes.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/splash_overlay.dart';
 import 'core/widgets/update_dialog.dart';
 import 'providers/ambient_sound_provider.dart';
 import 'providers/timer_provider.dart';
@@ -21,6 +23,9 @@ class _QingzhouAppState extends ConsumerState<QingzhouApp> {
   bool _updateDialogShowing = false;
   String? _lastPoppedUpdateVersion;
   Timer? _updateCheckTimer;
+  // 冷启动展示启动页；widget 测试环境不展示，避免影响既有的首屏断言。
+  bool _splashVisible = !Platform.environment.containsKey('FLUTTER_TEST');
+  late final String _splashQuote = MotivationalQuotes.pick();
 
   @override
   void initState() {
@@ -55,6 +60,17 @@ class _QingzhouAppState extends ConsumerState<QingzhouApp> {
       }
     }, fireImmediately: true);
     // 每次进入 app 检查一次更新：等首页稳定后再静默请求，避免抢占启动。
+    // 有启动页时推迟到启动页淡出之后，否则更新弹窗会盖在启动页上并被覆盖层吃掉点击。
+    if (!_splashVisible) _startUpdateCheck();
+  }
+
+  @override
+  void dispose() {
+    _updateCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startUpdateCheck() {
     // widget 测试环境不发起真实网络检查，也不留下未触发的 Timer。
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
     _updateCheckTimer = Timer(const Duration(seconds: 2), () {
@@ -62,10 +78,9 @@ class _QingzhouAppState extends ConsumerState<QingzhouApp> {
     });
   }
 
-  @override
-  void dispose() {
-    _updateCheckTimer?.cancel();
-    super.dispose();
+  void _handleSplashFinished() {
+    setState(() => _splashVisible = false);
+    _startUpdateCheck();
   }
 
   @override
@@ -77,6 +92,18 @@ class _QingzhouAppState extends ConsumerState<QingzhouApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       routerConfig: appRouter,
+      // 首页在启动页下方先行构建，启动页淡出后即可直接使用
+      builder: (context, child) => Stack(
+        fit: StackFit.expand,
+        children: [
+          if (child != null) child,
+          if (_splashVisible)
+            SplashOverlay(
+              quote: _splashQuote,
+              onFinished: _handleSplashFinished,
+            ),
+        ],
+      ),
     );
   }
 }

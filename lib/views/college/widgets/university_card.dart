@@ -34,14 +34,17 @@ class UniversityCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 高度与名称行（收藏图标 20 + 上下 padding 4）一致，使序号与校名垂直居中对齐
-          SizedBox(
-            width: 44,
-            height: 28,
-            child: Center(
+          // 序号列宽度跟随字号：字体放大时按比例的 44 会装不下 3 位序号，
+          // 用「内容定宽 + 下限 32」替代写死 44，同时保持与校名首行的顶对齐。
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 32, maxWidth: 64),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
               child: Text(
                 university.rank,
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w300,
@@ -88,21 +91,33 @@ class UniversityCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      university.score ?? '—',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: university.score == null
-                            ? (dark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary)
-                            : accent,
+                    // 分数是固定几位字符，系统字体放大 2 倍后会比标题行剩下的
+                    // 空间更宽（实测 320dp 溢出 ~6px）。让它按需等比缩小而不是
+                    // 溢出：数字始终完整可读，标题也不会被挤成省略号的一部分。
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: Text(
+                          university.score ?? '—',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: university.score == null
+                                ? (dark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary)
+                                : accent,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
+                // 省市 · 类型与各类标签在窄屏 / 大字体下换行，绝不横向溢出
                 Wrap(
                   spacing: 6,
                   runSpacing: 4,

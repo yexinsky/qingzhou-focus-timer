@@ -47,41 +47,100 @@ class _FeynmanSessionViewState extends ConsumerState<FeynmanSessionView> {
     );
   }
 
+  /// 输入讲解框：占据剩余高度（或紧凑布局下按可视高度折算的高度）。
+  Widget _buildOutputField(FeynmanNotifier notifier) => TextField(
+    controller: _text,
+    maxLines: null,
+    expands: true,
+    textAlignVertical: TextAlignVertical.top,
+    decoration: const InputDecoration(
+      hintText: '假设我要向一个完全不懂的人解释……',
+      border: OutlineInputBorder(),
+    ),
+    onChanged: (value) {
+      _debounce?.cancel();
+      _debounce = Timer(
+        const Duration(milliseconds: 500),
+        () => notifier.saveDraft(value),
+      );
+    },
+  );
+
+  /// 「卡壳了 / 结束并复盘」：始终放在内容块的最后，紧凑布局下随内容滚动。
+  Widget _buildOutputActions(FeynmanNotifier notifier) => Row(
+    children: [
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: _mark,
+          icon: const Icon(Icons.bolt),
+          label: const Text('卡壳了'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: FilledButton(
+          onPressed: () async {
+            await notifier.saveDraft(_text.text);
+            await notifier.beginReview();
+            if (mounted) context.push('/feynman/session/review');
+          },
+          child: const Text('结束并复盘'),
+        ),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final unit = ref.watch(feynmanProvider);
-    if (unit == null)
+    if (unit == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(
-          child: FilledButton(
-            onPressed: () => context.go('/feynman'),
-            child: const Text('创建费曼学习'),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: FilledButton(
+                onPressed: () => context.go('/feynman'),
+                child: const Text('创建费曼学习'),
+              ),
+            ),
           ),
         ),
       );
+    }
     final notifier = ref.read(feynmanProvider.notifier);
     if (unit.phase == 'ready') {
       return Scaffold(
         appBar: AppBar(title: Text(unit.title)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.record_voice_over, size: 64),
-                const SizedBox(height: 16),
-                const Text(
-                  '输入完成，请合上资料，用最简单的话讲清楚。',
-                  textAlign: TextAlign.center,
+        // 内容不足一屏时居中，超出（大字体 / 横屏 / 键盘）时可滚动，永不溢出。
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.record_voice_over, size: 64),
+                        const SizedBox(height: 16),
+                        const Text(
+                          '输入完成，请合上资料，用最简单的话讲清楚。',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: notifier.beginOutput,
+                          child: const Text('开始费曼讲解'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: notifier.beginOutput,
-                  child: const Text('开始费曼讲解'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -89,71 +148,78 @@ class _FeynmanSessionViewState extends ConsumerState<FeynmanSessionView> {
     }
     final overtime =
         unit.phase == 'output' && notifier.elapsed >= unit.outputPlannedSeconds;
+    // 计时头部：大字体或窄屏下计时数字按可用宽度等比缩放，标题最多两行。
+    final header = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          unit.title,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 18),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            overtime
+                ? '+${_fmt(notifier.elapsed - unit.outputPlannedSeconds)}'
+                : _fmt(notifier.remaining),
+            style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w300),
+          ),
+        ),
+        Text(overtime ? '计划时间已到，可继续讲解' : '剩余时间'),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(title: Text(unit.phase == 'input' ? '输入理解' : '费曼讲解')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Text(
-              unit.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              overtime
-                  ? '+${_fmt(notifier.elapsed - unit.outputPlannedSeconds)}'
-                  : _fmt(notifier.remaining),
-              style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w300),
-            ),
-            Text(overtime ? '计划时间已到，可继续讲解' : '剩余时间'),
-            if (unit.phase == 'output') ...[
-              const SizedBox(height: 16),
-              Expanded(
-                child: TextField(
-                  controller: _text,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: const InputDecoration(
-                    hintText: '假设我要向一个完全不懂的人解释……',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    _debounce?.cancel();
-                    _debounce = Timer(
-                      const Duration(milliseconds: 500),
-                      () => notifier.saveDraft(value),
-                    );
-                  },
+      // Scaffold 默认 resizeToAvoidBottomInset=true：键盘弹起时 body 被压到键盘上方，
+      // 这里再按「实际可用高度」切换排版，保证输入框与按钮都不被键盘顶出屏幕。
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 高度紧凑：横屏、小屏，或键盘弹起后剩余空间不足。
+              // 阈值按「头部 + 输入框下限 + 按钮行」估算，和 LayoutUtils 的
+              // 紧凑屏判定同源（LayoutUtils.isCompactHeight 默认 520）。
+              final compact = constraints.maxHeight < 480;
+              if (unit.phase != 'output') {
+                return SingleChildScrollView(child: header);
+              }
+              if (!compact) {
+                // 空间充足：按钮固定在底部，输入框吃掉剩余高度（按钮始终可见）。
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    const SizedBox(height: 16),
+                    Expanded(child: _buildOutputField(notifier)),
+                    const SizedBox(height: 12),
+                    _buildOutputActions(notifier),
+                  ],
+                );
+              }
+              // 空间紧张：整页滚动，输入框按可视高度折算（不小于 96dp），
+              // 按钮可随内容滚动到，不会被挤出屏幕。
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: (constraints.maxHeight * .32).clamp(96.0, 280.0),
+                      child: _buildOutputField(notifier),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildOutputActions(notifier),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _mark,
-                      icon: const Icon(Icons.bolt),
-                      label: const Text('卡壳了'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () async {
-                        await notifier.saveDraft(_text.text);
-                        await notifier.beginReview();
-                        if (context.mounted)
-                          context.push('/feynman/session/review');
-                      },
-                      child: const Text('结束并复盘'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -181,6 +247,7 @@ class _MarkDialogState extends State<_MarkDialog> {
     reason.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('刚才卡在哪里？'),

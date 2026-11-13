@@ -37,19 +37,25 @@ class StatCard extends StatelessWidget {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  letterSpacing: 1,
-                  color: AppColors.textSecondary,
+              // 标题占满剩余宽度并允许省略：窄屏 + 大字体时不会顶破卡片。
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
-              if (icon != null)
+              if (icon != null) ...[
+                const SizedBox(width: 8),
                 Icon(
                   icon,
                   size: 18,
@@ -57,36 +63,49 @@ class StatCard extends StatelessWidget {
                     alpha: 0.4,
                   ),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.w200,
-                  fontSize: 48,
-                ),
-              ),
-              if (unit != null) ...[
-                const SizedBox(width: 4),
+          // 数值 + 单位作为整体交给 FittedBox(scaleDown)：可用宽度不足
+          // （360dp 两列卡片）或系统字体放大时按比例缩小，代替原先固定
+          // fontSize: 48 的 Row 直接 RenderFlex overflow。
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
                 Text(
-                  unit!,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    color: AppColors.textSecondary,
+                  value,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    fontWeight: FontWeight.w200,
+                    fontSize: 48,
                   ),
                 ),
+                if (unit != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    unit!,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 8),
             Text(
               subtitle!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary.withValues(alpha: 0.7),
               ),

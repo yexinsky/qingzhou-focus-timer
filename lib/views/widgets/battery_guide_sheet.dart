@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 
 class _RomGuide {
@@ -45,56 +46,60 @@ class BatteryGuideSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Text(
-                '各机型后台设置路径',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-              child: Text(
-                '开启"忽略电池优化"后，建议再按机型检查自启动与后台权限，'
-                '避免专注计时在后台被系统中断。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final guide in _romGuides)
-              ListTile(
-                dense: true,
-                leading: Icon(
-                  Icons.phone_android_outlined,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                title: Text(guide.brand),
-                subtitle: Text(
-                  guide.path,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.4,
+    // 纯展示类弹窗，采用「整体滚动」：机型条目长短不一、字体放大后行高变化大，
+    // 顶部标题不必常驻。高度上限由 AdaptiveSheetBody 给出（屏幕 - 安全区 - 键盘），
+    // 不再用 size.height * 0.85 这种按整屏比例写死的方式。
+    return AdaptiveSheetBody(
+      child: Container(
+        decoration: BoxDecoration(
+          color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: ClampedTextScale(
+                  child: Text(
+                    '各机型后台设置路径',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
               ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                child: Text(
+                  '开启"忽略电池优化"后，建议再按机型检查自启动与后台权限，'
+                  '避免专注计时在后台被系统中断。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final guide in _romGuides)
+                ListTile(
+                  dense: true,
+                  leading: Icon(
+                    Icons.phone_android_outlined,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  title: ClampedTextScale(child: Text(guide.brand)),
+                  subtitle: Text(
+                    guide.path,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              SizedBox(height: adaptiveSheetBottomPadding(context)),
+            ],
+          ),
         ),
       ),
     );

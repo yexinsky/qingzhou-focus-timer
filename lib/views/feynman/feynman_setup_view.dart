@@ -24,11 +24,20 @@ class _State extends ConsumerState<FeynmanSetupView> {
     topic.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext c) => Scaffold(
     appBar: AppBar(title: const Text('费曼学习')),
+    // 表单整体可滚动：键盘弹起（Scaffold 默认 resizeToAvoidBottomInset）时
+    // 列表可视高度收缩，输入框与底部按钮都能滚动到键盘上方；
+    // 底部再补一段系统安全区，避免最后一行按钮被手势区/导航栏压住。
     body: ListView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + MediaQuery.viewPaddingOf(c).bottom,
+      ),
       children: [
         const Text(
           '先理解，再用自己的话讲清楚',
@@ -52,8 +61,10 @@ class _State extends ConsumerState<FeynmanSetupView> {
           decoration: const InputDecoration(labelText: '知识点'),
         ),
         const SizedBox(height: 12),
+        // isExpanded: 窄屏 + 大字体时让下拉项文字按可用宽度收缩（省略）而不是溢出。
         DropdownButtonFormField<int>(
           initialValue: input,
+          isExpanded: true,
           decoration: const InputDecoration(labelText: '输入理解'),
           items: [10, 20, 30, 45]
               .map((v) => DropdownMenuItem(value: v, child: Text('$v 分钟')))
@@ -65,6 +76,7 @@ class _State extends ConsumerState<FeynmanSetupView> {
         ),
         DropdownButtonFormField<int>(
           initialValue: output,
+          isExpanded: true,
           decoration: const InputDecoration(labelText: '输出讲解（至少输入的一半）'),
           items: [5, 10, 15, 20, 30, 45]
               .where((v) => v * 2 >= input)

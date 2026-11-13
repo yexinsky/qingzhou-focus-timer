@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/utils/time_formatter.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/stats_provider.dart';
@@ -41,25 +42,49 @@ class _StatsViewState extends ConsumerState<StatsView> {
     };
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildTabSelector(),
-              const SizedBox(height: 24),
-              _buildHeatmapSection(),
-              const SizedBox(height: 24),
-              _buildStatsCards(period),
-              const SizedBox(height: 24),
-              _buildChartSection(period),
-              const SizedBox(height: 24),
-              _buildSubjectSection(period),
-              _buildRecentSessions(stats.getRecentSessions(limit: 5)),
-              const SizedBox(height: 120),
-            ],
-          ),
+        // 整页内容可滚动（统计页没有必须常驻底部的操作按钮，采用
+        // 「整体滚动」而非「底部固定 + 内容滚动」）：小屏 / 横屏 /
+        // 系统字体放大时，内容只会滚出视口，不会 RenderFlex overflow。
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 矮屏（横屏 / 小屏 / 键盘弹起）收紧纵向间距，让首屏尽量多露出
+            // 内容。两个信号取「或」：constraints 是 SafeArea + 底栏之后的
+            // 真实绘制高度，LayoutUtils 额外把键盘遮挡算进去。
+            final isCompactHeight =
+                constraints.maxHeight < 520 ||
+                LayoutUtils.isCompactHeight(context);
+            final gap = isCompactHeight ? 16.0 : 24.0;
+            final topGap = isCompactHeight ? 24.0 : 60.0;
+            // 底部留白：MainShell 的底栏在 Scaffold body 之外，这里只需
+            // 一点呼吸空间 + 兜住极端机型的底部安全区（viewPadding 不会被
+            // SafeArea 从 MediaQuery 中扣掉，取 max 不会重复叠加）。
+            final bottomGap =
+                24.0 +
+                MediaQuery.viewPaddingOf(context).bottom -
+                MediaQuery.paddingOf(context).bottom;
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomGap),
+                child: Column(
+                  children: [
+                    SizedBox(height: topGap),
+                    _buildHeader(),
+                    SizedBox(height: gap),
+                    _buildTabSelector(),
+                    SizedBox(height: gap),
+                    _buildHeatmapSection(),
+                    SizedBox(height: gap),
+                    _buildStatsCards(period),
+                    SizedBox(height: gap),
+                    _buildChartSection(period),
+                    SizedBox(height: gap),
+                    _buildSubjectSection(period),
+                    _buildRecentSessions(stats.getRecentSessions(limit: 5)),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -77,6 +102,8 @@ class _StatsViewState extends ConsumerState<StatsView> {
       alignment: Alignment.centerLeft,
       child: Text(
         '数据统计',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(
           context,
         ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w300),
@@ -112,15 +139,21 @@ class _StatsViewState extends ConsumerState<StatsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 标题可省略、图例限缩：系统字体放大到 2.0 时这一行仍然放得下。
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '学习日历',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              Flexible(
+                child: Text(
+                  '学习日历',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
+              const SizedBox(width: 8),
               const HeatmapLegend(),
             ],
           ),
@@ -154,6 +187,7 @@ class _StatsViewState extends ConsumerState<StatsView> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: StatCard(
@@ -221,14 +255,20 @@ class _StatsViewState extends ConsumerState<StatsView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '专注波动',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              Flexible(
+                child: Text(
+                  '专注波动',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 _periodLabel,
+                maxLines: 1,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -263,6 +303,8 @@ class _StatsViewState extends ConsumerState<StatsView> {
           const SizedBox(height: 24),
           Text(
             '最近记录',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -296,8 +338,10 @@ class _StatsViewState extends ConsumerState<StatsView> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${session.duration ~/ 60}分钟',
+                      maxLines: 1,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.textSecondary,
                       ),

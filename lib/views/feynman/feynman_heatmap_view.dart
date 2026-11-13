@@ -30,9 +30,15 @@ class FeynmanHeatmapView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('知识卡点热力图')),
       body: marks.isEmpty
-          ? const Center(child: Text('完成费曼讲解并记录卡点后，这里会显示热点。'))
+          ? const SafeArea(child: Center(child: Text('完成费曼讲解并记录卡点后，这里会显示热点。')))
           : ListView(
-              padding: const EdgeInsets.all(16),
+              // 底部补系统安全区，最后一张卡片不会被手势区/导航栏压住。
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                16 + MediaQuery.viewPaddingOf(c).bottom,
+              ),
               children: [
                 const Text(
                   '颜色越深，近期卡壳与严重程度越高。',
@@ -47,20 +53,39 @@ class FeynmanHeatmapView extends ConsumerWidget {
                       alpha: (.08 + score * .04).clamp(.08, .5),
                     ),
                     child: ExpansionTile(
-                      title: Text(e.key),
+                      // 大字体 + 窄屏：标题/副标题按行数收缩，分数列宽固定并等比缩放，
+                      // 避免 trailing 撑满整行（ListTile 会直接抛错）。
+                      title: Text(
+                        e.key,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       subtitle: Text(
                         '${e.value.length} 次卡壳 · $unresolved 个未解决',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: Text('$score'),
+                      trailing: SizedBox(
+                        width: 56,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text('$score'),
+                        ),
+                      ),
                       children: e.value
                           .map(
                             (m) => CheckboxListTile(
                               value: m.resolved,
                               title: Text(
                                 m.keyword.isEmpty ? '未命名卡点' : m.keyword,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               subtitle: Text(
                                 '${m.reason}${m.note.isEmpty ? '' : ' · ${m.note}'} · ${m.offsetSeconds}s',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               onChanged: (v) => ref
                                   .read(feynmanProvider.notifier)

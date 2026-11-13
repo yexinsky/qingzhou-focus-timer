@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/ambient_sound_provider.dart';
 
@@ -25,46 +26,64 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = dark ? AppColors.primaryDark : AppColors.primaryLight;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.textSecondary.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
+    // 这个弹窗没有「主 CTA 必须常驻」的业务诉求，控件又多（音频列表、
+    // 导入按钮、循环模式、音量、自动播放），所以采用「整体滚动」：
+    // 键盘、大字体、横屏下用户滚动即可触达全部控件，不会有控件被裁掉。
+    // 高度上限与键盘避让统一交给 AdaptiveSheetBody（屏幕 - 安全区 - 键盘）。
+    return AdaptiveSheetBody(
+      child: Container(
+        decoration: BoxDecoration(
+          color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            adaptiveSheetBottomPadding(context),
           ),
-          const SizedBox(height: 20),
-          Text('氛围音', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            '导入音频文件，专注时自动播放',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ClampedTextScale(
+                child: Text(
+                  '氛围音',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '导入音频文件，专注时自动播放',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildSoundList(context, ref, state, primary),
+              const SizedBox(height: 16),
+              _buildImportButton(context, ref, primary),
+              if (state.sounds.length > 1) ...[
+                const SizedBox(height: 16),
+                _buildLoopModeSelector(context, ref, state, primary),
+              ],
+              const SizedBox(height: 24),
+              _buildVolumeSlider(context, ref, state, primary),
+              const SizedBox(height: 20),
+              _buildAutoPlayToggle(context, ref, state, primary),
+            ],
           ),
-          const SizedBox(height: 24),
-          _buildSoundList(context, ref, state, primary),
-          const SizedBox(height: 16),
-          _buildImportButton(context, ref, primary),
-          if (state.sounds.length > 1) ...[
-            const SizedBox(height: 16),
-            _buildLoopModeSelector(context, ref, state, primary),
-          ],
-          const SizedBox(height: 24),
-          _buildVolumeSlider(context, ref, state, primary),
-          const SizedBox(height: 20),
-          _buildAutoPlayToggle(context, ref, state, primary),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
-        ],
+        ),
       ),
     );
   }
@@ -200,7 +219,10 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
       child: OutlinedButton.icon(
         onPressed: () => _pickAndImport(context, ref),
         icon: Icon(Icons.add, size: 18, color: primary),
-        label: Text('导入音频文件', style: TextStyle(color: primary, fontSize: 14)),
+        // 通栏按钮文字限制缩放上限，任何字号下都是一行完整文字
+        label: ClampedTextScale(
+          child: Text('导入音频文件', style: TextStyle(color: primary, fontSize: 14)),
+        ),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: primary.withValues(alpha: 0.4)),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -220,27 +242,26 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
   ) {
     return Row(
       children: [
-        Icon(
-          Icons.repeat_one_on,
-          size: 18,
-          color: AppColors.textSecondary,
-        ),
+        Icon(Icons.repeat_one_on, size: 18, color: AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text(
-          '循环模式',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        Flexible(
+          child: ClampedTextScale(
+            child: Text(
+              '循环模式',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
         ),
         const Spacer(),
-        for (final (label, playlist) in [
-          ('单曲循环', false),
-          ('列表循环', true),
-        ])
+        for (final (label, playlist) in [('单曲循环', false), ('列表循环', true)])
           Padding(
             padding: const EdgeInsets.only(left: 8),
             child: ChoiceChip(
-              label: Text(label, style: const TextStyle(fontSize: 12)),
+              label: ClampedTextScale(
+                child: Text(label, style: const TextStyle(fontSize: 12)),
+              ),
               visualDensity: VisualDensity.compact,
               selected: state.loopPlaylist == playlist,
               onSelected: (_) => ref
@@ -266,18 +287,24 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
           children: [
             Icon(Icons.volume_down, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
-            Text(
-              '音量',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            Flexible(
+              child: ClampedTextScale(
+                child: Text(
+                  '音量',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
             ),
             const Spacer(),
-            Text(
-              '${(state.volume * 100).toInt()}%',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+            ClampedTextScale(
+              child: Text(
+                '${(state.volume * 100).toInt()}%',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -326,7 +353,12 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('专注时自动播放', style: Theme.of(context).textTheme.titleMedium),
+                ClampedTextScale(
+                  child: Text(
+                    '专注时自动播放',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
                 Text(
                   '开始专注计时时自动播放所选氛围音',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -358,10 +390,7 @@ class AmbientSoundSettingsSheet extends ConsumerWidget {
       allowMultiple: true,
     );
     if (result == null) return;
-    final paths = result.files
-        .map((f) => f.path)
-        .whereType<String>()
-        .toList();
+    final paths = result.files.map((f) => f.path).whereType<String>().toList();
     if (paths.isEmpty) return;
     var imported = 0;
     var failed = 0;

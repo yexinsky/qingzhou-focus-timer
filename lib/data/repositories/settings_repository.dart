@@ -76,7 +76,8 @@ class SettingsRepository {
     return _prefs.setString(_ambientSoundsKey, json);
   }
 
-  bool get ambientLoopPlaylist => _prefs.getBool(_ambientLoopPlaylistKey) ?? false;
+  bool get ambientLoopPlaylist =>
+      _prefs.getBool(_ambientLoopPlaylistKey) ?? false;
   Future<void> setAmbientLoopPlaylist(bool value) =>
       _prefs.setBool(_ambientLoopPlaylistKey, value);
 

@@ -21,6 +21,15 @@ class PlanView extends ConsumerStatefulWidget {
 class _PlanViewState extends ConsumerState<PlanView> {
   static const _weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
+  /// FAB 悬浮在页面底部之上，滚动内容需要让出它的实际占位：
+  /// `kFloatingActionButtonMargin`(底边留白) + FAB 默认直径 56 + 视觉间隔，
+  /// 而不是凭感觉写一个 110。
+  static const double _fabSize = 56;
+
+  /// 尾部安全距离：FAB 占位 + 与最后一张卡片的间隔。
+  static const double _tailClearance =
+      kFloatingActionButtonMargin + _fabSize + 24;
+
   DateTime _dayOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
@@ -170,7 +179,15 @@ class _PlanViewState extends ConsumerState<PlanView> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
+                // 原来 Text + Spacer + Text 的 Row 在窄屏/大字体下宽度必然
+                // 超出（320dp + 2.0 缩放需要 ~534dp）。Wrap 在放得下时用
+                // spaceBetween 保持"左标题右计数"的观感，放不下时自动换行，
+                // 不会产生 RenderFlex overflow。
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
                     Text(
                       _dateTitle(selected),
@@ -178,10 +195,9 @@ class _PlanViewState extends ConsumerState<PlanView> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Spacer(),
                     Text(
                       open.isEmpty ? '全部完成' : '还有 ${open.length} 项任务',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,
                       ),
@@ -248,7 +264,10 @@ class _PlanViewState extends ConsumerState<PlanView> {
                 ),
               ),
             ],
-            const SliverToBoxAdapter(child: SizedBox(height: 110)),
+            // 尾部留白 = FAB 实际占位（见 _tailClearance），保证最后一张卡片
+            // 能滚到 FAB 之上；原来写死的 110 与 FAB 尺寸/系统字体无关，在
+            // 底栏被大字体撑高时不足以避让。安全区已由外层 SafeArea 扣掉。
+            const SliverToBoxAdapter(child: SizedBox(height: _tailClearance)),
           ],
         ),
       ),

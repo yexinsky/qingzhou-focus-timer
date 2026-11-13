@@ -46,3 +46,10 @@ app.*.map.json
 
 # Local assistant configuration
 .claude/settings.local.json
+
+# 本地打包产物（大文件不入库，发布走 GitHub Release 附件）
+/dist/
+
+# 本地协作工具状态
+.agent-teams/
+.zcode/

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/discipline.dart';
 import '../../providers/discipline_provider.dart';
+import 'widgets/college_search_field.dart';
 
 /// 专业代码面板：按门类浏览、按代码或名称搜索研究生学科专业目录。
 class DisciplinePane extends ConsumerStatefulWidget {
@@ -69,24 +70,12 @@ class _DisciplinePaneState extends ConsumerState<DisciplinePane> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                // 与排名页搜索框统一：细描边 + 聚焦主色
+                CollegeSearchField(
                   controller: _searchController,
+                  hintText: '搜索代码或名称，如 0812 / 计算机',
                   onChanged: (value) =>
                       ref.read(disciplineQueryProvider.notifier).state = value,
-                  decoration: InputDecoration(
-                    hintText: '搜索代码或名称，如 0812 / 计算机',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    isDense: true,
-                    filled: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 12),
                 SingleChildScrollView(
@@ -232,17 +221,23 @@ class _CategorySection extends StatelessWidget {
           collapsedShape: const Border(),
           title: Row(
             children: [
-              Text(
-                '${group.code} ${group.name}',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: dark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary,
+              // 用 Expanded 而不是 Spacer：窄屏 + 大字体时门类名称先换行 / 省略，
+              // 右侧「N 项」与展开箭头不会被挤出屏幕。
+              Expanded(
+                child: Text(
+                  '${group.code} ${group.name}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: dark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '${group.items.length} 项',
                 style: TextStyle(
@@ -278,8 +273,12 @@ class _ItemTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 52,
+          // 代码列按内容定宽（最多占本行 1/3）：窄屏 + 大字体时不会把名称挤成竖排，
+          // 也不会因为写死 52 而把 4 位数字裁掉。
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width / 3,
+            ),
             child: Text(
               item.code,
               style: TextStyle(

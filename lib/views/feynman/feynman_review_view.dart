@@ -8,7 +8,10 @@ class FeynmanReviewView extends ConsumerWidget {
   @override
   Widget build(BuildContext c, WidgetRef ref) {
     final u = ref.watch(feynmanProvider);
-    if (u == null) return const Scaffold(body: Center(child: Text('没有进行中的学习')));
+    if (u == null)
+      return const Scaffold(
+        body: SafeArea(child: Center(child: Text('没有进行中的学习'))),
+      );
     final n = ref.read(feynmanProvider.notifier);
     Future<void> done(String outcome) async {
       await n.complete(outcome: outcome);
@@ -17,10 +20,22 @@ class FeynmanReviewView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('学习复盘')),
+      // 整页滚动：横屏 360dp 高或系统字体放大时，三个复盘按钮随内容滚动到，
+      // 底部再留出系统安全区（刘海屏 / 手势区），保证最后一行始终可见可点。
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.viewPaddingOf(c).bottom,
+        ),
         children: [
-          Text(u.title, style: Theme.of(c).textTheme.headlineSmall),
+          Text(
+            u.title,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(c).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 12),
           const Text('现在能不看资料完整讲清楚吗？'),
           const SizedBox(height: 24),

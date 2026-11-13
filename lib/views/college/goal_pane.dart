@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../data/models/college_preference.dart';
 import '../../data/models/university.dart';
 import '../../providers/college_preference_provider.dart';
 import '../../providers/university_provider.dart';
+import 'widgets/college_search_field.dart';
 
 /// 目标面板：目标院校、考研倒计时与自定义里程碑。
 class GoalPane extends ConsumerWidget {
@@ -19,6 +21,9 @@ class GoalPane extends ConsumerWidget {
     final notifier = ref.read(collegePreferenceProvider.notifier);
 
     return ListView(
+      // 尾部留白给 MainShell 底栏留呼吸空间。Scaffold 会把 body 布局在
+      // bottomNavigationBar 之上（不是叠盖），所以底栏随系统字体变大只会压缩
+      // 可视高度、不会盖住列表；110 在最大字体缩放下仍大于底栏高度，保留不变。
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 110),
       children: [
         _TargetCard(
@@ -156,16 +161,21 @@ class _CountdownCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                '考研倒计时',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: dark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
+              // 标题与右侧按钮同处一行：标题可压缩 / 省略，把宽度让给
+              // 「恢复自动」和编辑图标，系统字体放大时也不会把图标挤出卡片。
+              Expanded(
+                child: Text(
+                  '考研倒计时',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: dark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ),
-              const Spacer(),
               if (countdown != null && !countdown.isAuto)
                 TextButton(
                   onPressed: () => onPickDate(null),
@@ -216,18 +226,27 @@ class _CountdownCard extends StatelessWidget {
               ),
             ),
           ] else ...[
+            // 天数用的是 52 号大字，系统字体放大到 2.0 时这一行的自然宽度
+            // 会超过卡片（320dp 窄屏实测溢出 4.8px）。这里让数字自己缩放到
+            // 可用宽度内：字形不变形、也不写死任何宽度。
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${countdown.daysRemaining}',
-                  style: TextStyle(
-                    fontSize: 52,
-                    fontWeight: FontWeight.w300,
-                    height: 1.0,
-                    color: dark
-                        ? AppColors.primaryDark
-                        : AppColors.primaryLight,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      '${countdown.daysRemaining}',
+                      style: TextStyle(
+                        fontSize: 52,
+                        fontWeight: FontWeight.w300,
+                        height: 1.0,
+                        color: dark
+                            ? AppColors.primaryDark
+                            : AppColors.primaryLight,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -437,64 +456,102 @@ class _AddMilestoneSheetState extends State<_AddMilestoneSheet> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final media = MediaQuery.of(context);
+    // 弹窗整体（含内边距）不得超过「扣掉安全区与键盘」后的可用高度，
+    // 否则 Column 会因为内容比屏幕高而抛出 RenderFlex 溢出。
+    final maxContentHeight = (LayoutUtils.availableHeight(context) - 40).clamp(
+      120.0,
+      620.0,
+    );
     return Container(
       decoration: BoxDecoration(
         color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('添加里程碑', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(
-            '记录报名、模考、一轮复习等备考节点',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _titleController,
-            autofocus: true,
-            maxLength: 20,
-            decoration: const InputDecoration(
-              labelText: '里程碑名称',
-              border: OutlineInputBorder(),
-              counterText: '',
-            ),
-            onSubmitted: (_) => _add(),
-          ),
-          const SizedBox(height: 8),
-          Row(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, media.viewInsets.bottom + 24),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxContentHeight),
+          // 表单可滚动，但「添加里程碑」按钮固定在弹窗底部：
+          // 键盘弹起 / 大字体时输入框滚动，按钮始终可见可点。
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(Icons.calendar_today_outlined, size: 16),
-                label: Text(
-                  _date == null ? '不限日期' : '${_date!.month}月${_date!.day}日',
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '添加里程碑',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '记录报名、模考、一轮复习等备考节点',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _titleController,
+                        autofocus: true,
+                        maxLength: 20,
+                        decoration: const InputDecoration(
+                          labelText: '里程碑名称',
+                          border: OutlineInputBorder(),
+                          counterText: '',
+                        ),
+                        onSubmitted: (_) => _add(),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _pickDate,
+                            icon: const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 16,
+                            ),
+                            label: Text(
+                              _date == null
+                                  ? '不限日期'
+                                  : '${_date!.month}月${_date!.day}日',
+                            ),
+                          ),
+                          if (_date != null)
+                            TextButton(
+                              onPressed: () => setState(() => _date = null),
+                              child: const Text('清除日期'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              if (_date != null)
-                TextButton(
-                  onPressed: () => setState(() => _date = null),
-                  child: const Text('清除日期'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                // 只给最小高度：大字体下按钮随文字长高，而不是把文字压出边界
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: FilledButton(
+                    onPressed: _add,
+                    child: const Text('添加里程碑'),
+                  ),
                 ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(onPressed: _add, child: const Text('添加里程碑')),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -528,6 +585,13 @@ class _TargetPickerSheet extends StatefulWidget {
 
 class _TargetPickerSheetState extends State<_TargetPickerSheet> {
   String _query = '';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -547,6 +611,12 @@ class _TargetPickerSheetState extends State<_TargetPickerSheet> {
       return originalOrder[a.name]! - originalOrder[b.name]!;
     });
 
+    // 弹窗高度跟随屏幕可用高度（横屏 / 小屏 / 键盘弹起时自动变矮），
+    // 内容整体可滚动，因此任何字号下都不会有元素被裁到屏幕外。
+    final maxContentHeight = (LayoutUtils.availableHeight(context) * .8).clamp(
+      160.0,
+      560.0,
+    );
     return Container(
       decoration: BoxDecoration(
         color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -556,107 +626,101 @@ class _TargetPickerSheetState extends State<_TargetPickerSheet> {
       child: SafeArea(
         top: false,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 460),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('选择目标院校', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 4),
-              Text(
-                '设置后专注页顶部会显示目标提醒',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                autofocus: widget.universities.isEmpty,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: '搜索院校名称',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+          constraints: BoxConstraints(maxHeight: maxContentHeight),
+          // 取舍：本弹窗是「浏览 + 搜索 + 点选」，没有必须常驻的确认按钮，
+          // 所以选「整体滚动」——标题、搜索框、列表同一个滚动区，
+          // 小屏 / 大字体下靠滚动可达，不会出现固定高度的空隙或裁切。
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('选择目标院校', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  '设置后专注页顶部会显示目标提醒',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    if (widget.currentTarget != null)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: widget.onClear,
-                        child: const SizedBox(
-                          height: 48,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '清除目标院校',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.error,
+                const SizedBox(height: 12),
+                // 与排名页 / 专业代码页搜索框统一：细描边 + 聚焦主色
+                CollegeSearchField(
+                  autofocus: widget.universities.isEmpty,
+                  controller: _searchController,
+                  hintText: '搜索院校名称',
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+                const SizedBox(height: 8),
+                if (widget.currentTarget != null)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onClear,
+                    child: ConstrainedBox(
+                      // 最小高度而非死高：字体放大时行高随之变高
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '清除目标院校',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                for (final university in list.take(80))
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => widget.onSelect(university.name),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 52),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 36,
+                              child: Text(
+                                university.rank,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: dark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    for (final university in list.take(80))
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => widget.onSelect(university.name),
-                        child: SizedBox(
-                          height: 52,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 36,
-                                child: Text(
-                                  university.rank,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: dark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
-                                  ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                university.name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: dark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  university.name,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: dark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
+                            ),
+                            if (widget.favorites.contains(university.name))
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 18,
+                                color: Color(0xFFD9A441),
                               ),
-                              if (widget.favorites.contains(university.name))
-                                const Icon(
-                                  Icons.star_rounded,
-                                  size: 18,
-                                  color: Color(0xFFD9A441),
-                                ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

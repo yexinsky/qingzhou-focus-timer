@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../core/widgets/update_dialog.dart';
 import '../widgets/battery_guide_sheet.dart';
@@ -40,12 +41,17 @@ class SettingsView extends ConsumerWidget {
     final primaryColor = Theme.of(context).brightness == Brightness.dark
         ? AppColors.primaryDark
         : AppColors.primaryLight;
+    // 横屏/键盘弹起等紧凑高度下，顶部 60dp 的留白会白吃掉近半屏，
+    // 因此按可视高度自适应收缩；列表本身可滚动，内容永不被挤出屏幕。
+    final compact = LayoutUtils.isCompactHeight(context);
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 120),
+          // 底部留白要盖住主框架底栏（约 64dp）+ 系统手势区；
+          // 最后一项永远可以滚动到留白之上，不会被底栏遮挡。
+          padding: EdgeInsets.only(bottom: compact ? 96 : 120),
           children: [
-            const SizedBox(height: 60),
+            SizedBox(height: compact ? 24 : 60),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../data/models/app_update.dart';
 import '../services/apk_download_service.dart';
 import '../services/apk_install_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/layout_utils.dart';
 import '../../providers/update_provider.dart';
 
 /// 设置页"检查更新"入口：手动检查不受"跳过此版本"影响，并把结果
@@ -201,10 +203,18 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final update = widget.update;
+    // 内容区高度上限跟随可用高度，不再写死 360：小屏 / 横屏 / 字号放大 /
+    // 键盘弹起时都能收缩，避免 releaseNotes 把「下次再说 / 立即更新」挤出屏。
+    // 可用高度已扣除安全区；键盘由 AlertDialog 自己做 viewInsets 避让，
+    // 所以这里只作上限，不参与键盘计算，两者不会叠加。
+    final maxContentHeight = math.max(
+      140.0,
+      LayoutUtils.availableHeight(context) * 0.6,
+    );
     return AlertDialog(
       title: const Text('发现新版本'),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 360),
+        constraints: BoxConstraints(maxWidth: 400, maxHeight: maxContentHeight),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

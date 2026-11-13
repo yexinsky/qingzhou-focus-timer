@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/layout_utils.dart';
 import '../../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../../providers/university_provider.dart';
+import 'college_search_field.dart';
 import 'college_tag_colors.dart';
 
 /// 排名筛选栏：搜索框 + 标签胶囊（全部/双一流/985/211）+ 省份、类型选择按钮。
@@ -34,23 +36,10 @@ class CollegeFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
+        CollegeSearchField(
           controller: searchController,
+          hintText: '搜索院校名称',
           onChanged: onQueryChanged,
-          decoration: InputDecoration(
-            hintText: '搜索院校名称',
-            prefixIcon: const Icon(Icons.search, size: 20),
-            isDense: true,
-            filled: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
         ),
         const SizedBox(height: 10),
         SingleChildScrollView(
@@ -190,6 +179,13 @@ class CollegeFilterBar extends StatelessWidget {
       context: context,
       builder: (sheetContext) {
         final dark = Theme.of(sheetContext).brightness == Brightness.dark;
+        // 面板高度按屏幕可用高度取比例（矮屏 / 横屏自动变矮），
+        // 选项列表在其中滚动，避免固定 360 在横屏时超出屏幕。
+        final maxContentHeight =
+            (LayoutUtils.availableHeight(sheetContext) * .7).clamp(
+              180.0,
+              480.0,
+            );
         return Container(
           decoration: BoxDecoration(
             color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -199,7 +195,7 @@ class CollegeFilterBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
+              constraints: BoxConstraints(maxHeight: maxContentHeight),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,26 +244,32 @@ class CollegeFilterBar extends StatelessWidget {
     ValueChanged<String?> onSelected,
   ) {
     final isSelected = selected == value;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Theme.of(context).colorScheme.primary : null,
+    // 外面那层 Container 自带背景色，ListTile 的水波纹画在更上层的 Material 上
+    // 会被遮住（框架会报 "ink splashes may be invisible" 断言）。这里给每个
+    // 选项自己一层透明 Material 承接水波纹，视觉与交互都不变。
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        title: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Theme.of(context).colorScheme.primary : null,
+          ),
         ),
+        trailing: isSelected
+            ? Icon(
+                Icons.check,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              )
+            : null,
+        onTap: () {
+          onSelected(value);
+          Navigator.of(context).pop();
+        },
       ),
-      trailing: isSelected
-          ? Icon(
-              Icons.check,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
-            )
-          : null,
-      onTap: () {
-        onSelected(value);
-        Navigator.of(context).pop();
-      },
     );
   }
 }

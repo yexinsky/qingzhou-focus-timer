@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/layout_utils.dart';
 import '../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../providers/subject_provider.dart';
 
@@ -54,19 +55,23 @@ class _SubjectManageSheetState extends ConsumerState<SubjectManageSheet> {
     final subjects = ref.watch(subjectsProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      // 横屏 + 键盘等矮高度场景下允许滚动，避免输入区被裁出屏幕
-      child: SingleChildScrollView(
+    // 布局取舍：输入行固定在底部（添加科目时键盘弹起也要能立刻看到输入框和
+    // 「添加」按钮），学科列表占据剩余空间并独立滚动——不再写死 320 的高度：
+    // 小屏 / 横屏 / 大字体时列表自动变矮，不会把输入行顶出屏幕。
+    // 键盘避让与整体高度上限由 AdaptiveSheetBody 统一处理，内部不再叠加
+    // viewInsets，避免键盘高度被算两遍。
+    return AdaptiveSheetBody(
+      child: Container(
+        decoration: BoxDecoration(
+          color: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          16,
+          24,
+          adaptiveSheetBottomPadding(context),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,46 +85,46 @@ class _SubjectManageSheetState extends ConsumerState<SubjectManageSheet> {
               ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            if (subjects.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  '还没有科目，在下方添加一个吧',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              )
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 320),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: subjects.length,
-                  itemBuilder: (context, index) {
-                    final subject = subjects[index];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      leading: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: subject.color,
-                          shape: BoxShape.circle,
+            // Flexible + shrinkWrap：科目少时列表只有内容高，科目多时在剩余
+            // 空间内滚动，永远给下方的输入行留出位置
+            Flexible(
+              child: subjects.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        '还没有科目，在下方添加一个吧',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                      title: Text(subject.name),
-                      trailing: IconButton(
-                        onPressed: () => _remove(subject.name),
-                        icon: const Icon(Icons.remove_circle_outline),
-                        color: AppColors.textSecondary,
-                        tooltip: '删除',
-                      ),
-                    );
-                  },
-                ),
-              ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: subjects.length,
+                      itemBuilder: (context, index) {
+                        final subject = subjects[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: subject.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          title: Text(subject.name),
+                          trailing: IconButton(
+                            onPressed: () => _remove(subject.name),
+                            icon: const Icon(Icons.remove_circle_outline),
+                            color: AppColors.textSecondary,
+                            tooltip: '删除',
+                          ),
+                        );
+                      },
+                    ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -137,10 +142,13 @@ class _SubjectManageSheetState extends ConsumerState<SubjectManageSheet> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _add,
-                  icon: const Icon(Icons.add),
-                  label: const Text('添加'),
+                // 输入框旁边的按钮：大字体下只收缩文字不撑破行高
+                Flexible(
+                  child: FilledButton.icon(
+                    onPressed: _add,
+                    icon: const Icon(Icons.add),
+                    label: const ClampedTextScale(child: Text('添加')),
+                  ),
                 ),
               ],
             ),

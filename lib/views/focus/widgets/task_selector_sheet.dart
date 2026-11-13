@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/layout_utils.dart';
+import '../../../core/widgets/adaptive_bottom_sheet.dart';
 import '../../../data/models/task.dart';
 import '../../../providers/ambient_sound_provider.dart';
 import '../../../providers/stats_provider.dart';
@@ -31,16 +33,16 @@ class TaskSelectorSheet extends ConsumerWidget {
     final subjects = ref.watch(subjectsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      // 横屏等矮高度场景下限制弹窗高度并支持滚动，避免底部入口被裁出屏幕
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+    return AdaptiveSheetBody(
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
+        // 高度上限由 AdaptiveSheetBody 统一给出（屏幕高度 - 安全区 - 键盘），
+        // 这里不再用 size.height * 0.85 这类「按整屏比例」的写法：
+        // 横屏、刘海屏、底部手势区叠加时比例值会超过真实可用高度，
+        // 底部入口就会被 ClipRect 裁掉。内容整体可滚动，任一行数 / 字号下都可达。
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -59,9 +61,12 @@ class TaskSelectorSheet extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '选择专注任务',
-                      style: Theme.of(context).textTheme.titleLarge,
+                    // Expanded：字体放大时标题换行而不是把关闭按钮挤出屏幕
+                    Expanded(
+                      child: Text(
+                        '选择专注任务',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -76,10 +81,13 @@ class TaskSelectorSheet extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     children: [
-                      Text(
-                        '按科目专注',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                      Flexible(
+                        child: ClampedTextScale(
+                          child: Text(
+                            '按科目专注',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
                         ),
                       ),
                       const Spacer(),
@@ -113,10 +121,12 @@ class TaskSelectorSheet extends ConsumerWidget {
               ],
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  '今日待办',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                child: ClampedTextScale(
+                  child: Text(
+                    '今日待办',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -177,7 +187,7 @@ class TaskSelectorSheet extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: _AmbientSoundEntry(),
               ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+              SizedBox(height: adaptiveSheetBottomPadding(context, extra: 16)),
             ],
           ),
         ),
@@ -372,10 +382,13 @@ class _AmbientSoundEntry extends ConsumerWidget {
                 color: primary,
               ),
               const SizedBox(width: 12),
-              Text(
-                '氛围音',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 14,
+              // 入口行是「一行放下」的固定结构，限制文字缩放上限避免撑破布局
+              ClampedTextScale(
+                child: Text(
+                  '氛围音',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontSize: 14),
                 ),
               ),
               const SizedBox(width: 8),
@@ -432,10 +445,13 @@ class _FreeFocusButton extends StatelessWidget {
               children: [
                 Icon(Icons.bolt, size: 20, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
-                Text(
-                  '自由专注',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                // 底部主入口：限制缩放上限保证按钮始终是一行完整可读的文字
+                ClampedTextScale(
+                  child: Text(
+                    '自由专注',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

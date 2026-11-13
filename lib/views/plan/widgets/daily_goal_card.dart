@@ -27,33 +27,58 @@ class DailyGoalCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            // 原来 Icon + 标题 + Spacer + 进度 + 编辑图标的 Row，在系统字体
+            // 放大（2×）的 320dp 窄屏上总宽超过卡片可用宽度，必然 RenderFlex
+            // overflow。改用 Wrap：放得下时仍是一行两端对齐，放不下时自动
+            // 折行，标题可省略、进度不被裁切。
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
-                Icon(
-                  goal.reached ? Icons.verified_outlined : Icons.flag_outlined,
-                  size: 18,
-                  color: goal.reached ? AppColors.success : primary,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      goal.reached
+                          ? Icons.verified_outlined
+                          : Icons.flag_outlined,
+                      size: 18,
+                      color: goal.reached ? AppColors.success : primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '每日目标',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  '每日目标',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const Spacer(),
-                Text(
-                  goal.reached ? '已达成' : '${goal.completed}/${goal.target} 段',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: goal.reached ? AppColors.success : primary,
-                  ),
-                ),
-                Icon(
-                  Icons.edit_outlined,
-                  size: 14,
-                  color: AppColors.textSecondary.withValues(alpha: .6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      goal.reached
+                          ? '已达成'
+                          : '${goal.completed}/${goal.target} 段',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: goal.reached ? AppColors.success : primary,
+                      ),
+                    ),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 14,
+                      color: AppColors.textSecondary.withValues(alpha: .6),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -118,64 +143,101 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = dark ? AppColors.primaryDark : AppColors.primaryLight;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('设置目标', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 6),
-          Text(
-            '${widget.date.month}月${widget.date.day}日 · 已完成 ${widget.goal.completed} 段',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+    // 弹层挂在 MainShell body 里的嵌套 Navigator 上，而 body 在键盘弹起时
+    // 已经按 resizeToAvoidBottomInset 收缩（同时把 viewInsets 从 MediaQuery
+    // 里摘掉），所以这里能拿到的真实可用高度只剩父级约束——必须用它给滚动
+    // 区域封顶：否则内容按整屏高度铺开，超出部分被路由外层的 ClipRect 裁掉，
+    // 表现就是「保存键看得见一半、点不到」。
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
-          const SizedBox(height: 28),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _StepButton(
-                icon: Icons.remove,
-                onTap: _value > 1 ? () => setState(() => _value--) : null,
-              ),
-              const SizedBox(width: 36),
-              Text(
-                '$_value',
-                style: TextStyle(
-                  fontSize: 52,
-                  fontWeight: FontWeight.w200,
-                  color: primary,
+          child: SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: constraints.maxHeight),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('设置目标', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${widget.date.month}月${widget.date.day}日 · 已完成 ${widget.goal.completed} 段',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _StepButton(
+                          icon: Icons.remove,
+                          onTap: _value > 1
+                              ? () => setState(() => _value--)
+                              : null,
+                        ),
+                        const SizedBox(width: 36),
+                        // 数字 52px 会被 textScaler 继续放大，FittedBox 保证
+                        // 它不会把两个步进按钮挤出屏幕。
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '$_value',
+                              style: TextStyle(
+                                fontSize: 52,
+                                fontWeight: FontWeight.w200,
+                                color: primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 36),
+                        _StepButton(
+                          icon: Icons.add,
+                          onTap: _value < 24
+                              ? () => setState(() => _value++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '个专注段',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () => _save(_value),
+                        child: const Text('保存'),
+                      ),
+                    ),
+                    if (widget.goal.hasCustomTarget)
+                      TextButton(
+                        onPressed: () => _save(null),
+                        child: const Text('恢复默认目标'),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 36),
-              _StepButton(
-                icon: Icons.add,
-                onTap: _value < 24 ? () => setState(() => _value++) : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text('个专注段', style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onPressed: () => _save(_value),
-              child: const Text('保存'),
             ),
           ),
-          if (widget.goal.hasCustomTarget)
-            TextButton(
-              onPressed: () => _save(null),
-              child: const Text('恢复默认目标'),
-            ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
-        ],
-      ),
+        );
+      },
     );
   }
 }

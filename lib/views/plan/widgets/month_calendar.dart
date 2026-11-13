@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -104,7 +106,19 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     _showMonth(_pageOf(widget.selectedDate));
   }
 
-  Widget _monthView(int page) {
+  /// 表格单元格高度：由「可用宽度」和「系统字体缩放」共同推导，不再写死 40。
+  /// - 窄屏：格子宽度决定高度，保持接近正方形的观感；
+  /// - 系统字体放大：数字需要更多竖直空间，下限随 textScaler 抬升；
+  /// - 上限 56：横屏矮屏（高 360dp）时整块日历仍能塞进一屏。
+  double _cellHeight(BuildContext context, double maxWidth) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    final widthDriven = math.min(maxWidth / 7, 44.0);
+    final textDriven = textScaler.scale(14) + 18;
+    final height = math.max(widthDriven, math.max(textDriven, 32.0));
+    return height.clamp(32.0, 56.0);
+  }
+
+  Widget _monthView(int page, double cellHeight) {
     final monthStart = _monthAt(page);
     final nextMonth = DateTime(monthStart.year, monthStart.month + 1);
     // 周一为一周起点
@@ -125,12 +139,12 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     }
 
     return SizedBox(
-      height: rows * 40.0 + 8,
+      height: rows * cellHeight + 8,
       child: Column(
         children: [
           for (var row = 0; row < rows; row++)
             SizedBox(
-              height: 40,
+              height: cellHeight,
               child: Row(
                 children: [
                   for (var col = 0; col < 7; col++)
@@ -141,6 +155,7 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
                         daysInMonth,
                         lo,
                         hi,
+                        cellHeight,
                       ),
                     ),
                 ],
@@ -157,6 +172,7 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     int daysInMonth,
     DateTime? lo,
     DateTime? hi,
+    double cellHeight,
   ) {
     if (offset < 0 || offset >= daysInMonth) return const SizedBox.shrink();
     final date = DateTime(monthStart.year, monthStart.month, offset + 1);
@@ -164,30 +180,38 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     final isStart = _dayOnly(widget.selectedDate) == date;
     final isEnd = widget.rangeEnd != null && _dayOnly(widget.rangeEnd!) == date;
     final selected = isStart || isEnd;
-    final inRange = lo != null && hi != null && !date.isBefore(lo) && !date.isAfter(hi);
+    final inRange =
+        lo != null && hi != null && !date.isBefore(lo) && !date.isAfter(hi);
     final isToday = date == _today;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = dark ? AppColors.primaryDark : AppColors.primaryLight;
     final muted = AppColors.textSecondary.withValues(alpha: .35);
 
+    // 选中圆盘随格子高度收缩，避免小屏/矮屏时圆盘比格子还高。
+    final discSize = math.min(cellHeight - 2, 36.0);
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => widget.onDateSelected(date),
       child: Container(
-        height: 40,
+        height: cellHeight,
         decoration: inRange
             ? BoxDecoration(
                 color: primary.withValues(alpha: .12),
                 borderRadius: BorderRadius.horizontal(
-                  left: date == lo ? const Radius.circular(20) : Radius.zero,
-                  right: date == hi ? const Radius.circular(20) : Radius.zero,
+                  left: date == lo
+                      ? Radius.circular(cellHeight / 2)
+                      : Radius.zero,
+                  right: date == hi
+                      ? Radius.circular(cellHeight / 2)
+                      : Radius.zero,
                 ),
               )
             : null,
         child: Center(
           child: SizedBox(
-            width: 36,
-            height: 36,
+            width: discSize,
+            height: discSize,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -210,7 +234,9 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
                     color: selected
                         ? primary
                         : isToday
-                        ? (dark ? AppColors.textPrimaryDark : AppColors.textPrimary)
+                        ? (dark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary)
                         : muted,
                   ),
                 ),
@@ -298,23 +324,31 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
             ],
           ),
         ),
-        SizedBox(
-          height: 6 * 40.0 + 8,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: _totalMonths,
-            onPageChanged: (page) {
-              setState(() => _headerPage = page);
-              final month = _monthAt(page);
-              widget.onMonthChanged?.call(
-                '${month.year}-${month.month.toString().padLeft(2, '0')}',
-              );
-            },
-            itemBuilder: (_, page) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _monthView(page),
-            ),
-          ),
+        // PageView 高度按「最多 6 行 × 当前单元格高度」算，单元格高度由宽度
+        // 与字体缩放推导（见 _cellHeight），因此横屏/大字体也不会横向或纵向
+        // 撑破；日历整体高度仍是一屏可控的量。
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cellHeight = _cellHeight(context, constraints.maxWidth - 8);
+            return SizedBox(
+              height: 6 * cellHeight + 8,
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _totalMonths,
+                onPageChanged: (page) {
+                  setState(() => _headerPage = page);
+                  final month = _monthAt(page);
+                  widget.onMonthChanged?.call(
+                    '${month.year}-${month.month.toString().padLeft(2, '0')}',
+                  );
+                },
+                itemBuilder: (_, page) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _monthView(page, cellHeight),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

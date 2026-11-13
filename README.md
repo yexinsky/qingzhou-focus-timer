@@ -12,7 +12,7 @@
 
 ### 可靠专注计时
 
-- 25、45、60、90 分钟固定倒计时。
+- 25、45、60 分钟固定倒计时。
 - 支持灵活正计时，从 00:00 开始，可随时暂停、结束并按实际时长记录。
 - 灵活计时与标准专注分开统计，不会增加标准专注段数量或触发休息周期。
 - 开始、暂停、恢复、重置与放弃。
@@ -130,13 +130,14 @@ flutter build web
 flutter build apk --debug
 ```
 
-截至 2026 年 9 月 20 日，当前版本已完成以下验证：
+截至 2026 年 11 月 14 日，当前版本已完成以下验证：
 
-- `flutter analyze`：无问题。
-- `flutter test --coverage`：138 项测试全部通过（含院校排名、专业代码、目标择校、更新检查等新增覆盖）。
+- `flutter analyze --fatal-infos`：无问题。
+- `flutter test`：281 项测试全部通过（新增多端布局适配回归矩阵，覆盖小屏 / 横屏 / 平板 × 字体放大 / 键盘弹起）。
+- `dart format --output=none --set-exit-if-changed lib test`：无改动。
 - `flutter build web`：通过。
-- `flutter build apk --release`：通过（56.6 MB）。
-- Debug APK 已在 Android 15 模拟器完成冷启动和各页面功能验证，无崩溃。
+- `flutter build apk --release`：通过（59.1 MB），另出 arm64-v8a / armeabi-v7a / x86_64 三个分 ABI 包。
+- Release APK 已在 Android 14 模拟器完成冷启动和各页面功能验证，无崩溃；浅色 / 深色 / 2 倍系统字号下均无布局溢出。
 
 GitHub Actions 位于 `.github/workflows/flutter-ci.yml`，会自动执行格式检查、静态分析、测试以及 Web、Android Debug 构建。
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_colors.dart';
+import '../core/utils/layout_utils.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -68,48 +69,69 @@ class MainShell extends StatelessWidget {
             ),
           ),
         ),
+        // 底栏是"必须一行放下"的固定区域：系统字体放大时先限制标签缩放
+        // （正文仍按用户设置放大），再用 Flexible 让 5 个 tab 平分宽度，
+        // 避免窄屏 + 大字体把 Row 撑破 / 把底栏越撑越高挤压 body。
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Icons.timer_outlined,
-                  activeIcon: Icons.timer,
-                  label: '专注',
-                  isActive: currentIndex == 0,
-                  onTap: () => _onTap(context, 0),
-                ),
-                _NavItem(
-                  icon: Icons.calendar_today_outlined,
-                  activeIcon: Icons.calendar_today,
-                  label: '计划',
-                  isActive: currentIndex == 1,
-                  onTap: () => _onTap(context, 1),
-                ),
-                _NavItem(
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart,
-                  label: '统计',
-                  isActive: currentIndex == 2,
-                  onTap: () => _onTap(context, 2),
-                ),
-                _NavItem(
-                  icon: Icons.school_outlined,
-                  activeIcon: Icons.school,
-                  label: '院校',
-                  isActive: currentIndex == 3,
-                  onTap: () => _onTap(context, 3),
-                ),
-                _NavItem(
-                  icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
-                  label: '设置',
-                  isActive: currentIndex == 4,
-                  onTap: () => _onTap(context, 4),
-                ),
-              ],
+          top: false,
+          child: ClampedTextScale(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Flexible(
+                    child: _NavItem(
+                      key: const ValueKey('nav_item_0'),
+                      icon: Icons.timer_outlined,
+                      activeIcon: Icons.timer,
+                      label: '专注',
+                      isActive: currentIndex == 0,
+                      onTap: () => _onTap(context, 0),
+                    ),
+                  ),
+                  Flexible(
+                    child: _NavItem(
+                      key: const ValueKey('nav_item_1'),
+                      icon: Icons.calendar_today_outlined,
+                      activeIcon: Icons.calendar_today,
+                      label: '计划',
+                      isActive: currentIndex == 1,
+                      onTap: () => _onTap(context, 1),
+                    ),
+                  ),
+                  Flexible(
+                    child: _NavItem(
+                      key: const ValueKey('nav_item_2'),
+                      icon: Icons.bar_chart_outlined,
+                      activeIcon: Icons.bar_chart,
+                      label: '统计',
+                      isActive: currentIndex == 2,
+                      onTap: () => _onTap(context, 2),
+                    ),
+                  ),
+                  Flexible(
+                    child: _NavItem(
+                      key: const ValueKey('nav_item_3'),
+                      icon: Icons.school_outlined,
+                      activeIcon: Icons.school,
+                      label: '院校',
+                      isActive: currentIndex == 3,
+                      onTap: () => _onTap(context, 3),
+                    ),
+                  ),
+                  Flexible(
+                    child: _NavItem(
+                      key: const ValueKey('nav_item_4'),
+                      icon: Icons.settings_outlined,
+                      activeIcon: Icons.settings,
+                      label: '设置',
+                      isActive: currentIndex == 4,
+                      onTap: () => _onTap(context, 4),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -126,6 +148,7 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _NavItem({
+    super.key,
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -146,7 +169,9 @@ class _NavItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        // 横向内边距收窄：5 个 tab 平分宽度时，窄屏（320dp）也要让
+        // 「图标 + 2 个字标签」放得下，多余空间由 Row 的 spaceAround 分配。
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
               ? activeColor.withValues(alpha: 0.1)
@@ -162,27 +187,37 @@ class _NavItem extends StatelessWidget {
               color: isActive ? activeColor : inactiveColor,
             ),
             const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? activeColor : inactiveColor,
-                letterSpacing: 0.5,
-              ),
-              child: Text(label),
-            ),
-            if (isActive) ...[
-              const SizedBox(height: 4),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: activeColor,
-                  shape: BoxShape.circle,
+            // FittedBox(scaleDown)：极窄屏 / 超大字体时标签按需缩小而不是
+            // 撑破底栏（文字本身仍受外层 ClampedTextScale 控制）。
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: isActive ? activeColor : inactiveColor,
+                  letterSpacing: 0.5,
                 ),
+                child: Text(label, maxLines: 1, softWrap: false),
               ),
-            ],
+            ),
+            // 活动圆点的占位始终保留：否则选中/未选中的 tab 高度差 8dp，
+            // 切 tab 时底栏会变高变矮、body 可用高度跟着跳变。这里只是隐藏
+            // 圆点本身，视觉与原来一致（未选中时看不到圆点）。
+            const SizedBox(height: 4),
+            SizedBox(
+              width: 4,
+              height: 4,
+              child: isActive
+                  ? DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                    )
+                  : null,
+            ),
           ],
         ),
       ),
